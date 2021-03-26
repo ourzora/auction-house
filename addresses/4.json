@@ -1,0 +1,5 @@
+{
+  "weth": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
+  "reserveAuctionImplementation": "0xdD9dd54c4be96298f540985C6CE88Fa20AB98b69",
+  "reserveAuctionProxy": "0xa7fb9E1bB0DD336ecE42cB3E12955d90A8ec20A3"
+}
