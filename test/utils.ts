@@ -5,7 +5,7 @@ import {
   Media,
   MediaFactory,
 } from "@zoralabs/core/dist/typechain";
-import { BadBidder, ReserveAuction, WETH } from "../typechain";
+import { BadBidder, AuctionHouse, WETH } from "../typechain";
 import { sha256 } from "ethers/lib/utils";
 import Decimal from "../utils/Decimal";
 import { BigNumber } from "ethers";
@@ -58,8 +58,11 @@ export const mint = async (media: Media) => {
   );
 };
 
-export const approveAuction = async (media: Media, auction: ReserveAuction) => {
-  await media.approve(auction.address, 0);
+export const approveAuction = async (
+  media: Media,
+  auctionHouse: AuctionHouse
+) => {
+  await media.approve(auctionHouse.address, 0);
 };
 
 export const revert = (messages: TemplateStringsArray) =>

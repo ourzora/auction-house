@@ -13,7 +13,7 @@ import {
 } from "./utils";
 import { Market, Media } from "@zoralabs/core/dist/typechain";
 import { BigNumber, Signer } from "ethers";
-import { ReserveAuction, WETH } from "../typechain";
+import { AuctionHouse, WETH } from "../typechain";
 
 chai.use(asPromised);
 
@@ -26,7 +26,7 @@ describe("integration", () => {
   let market: Market;
   let media: Media;
   let weth: WETH;
-  let auction: ReserveAuction;
+  let auction: AuctionHouse;
   let deployer, creator, owner, curator, bidderA, bidderB, otherUser: Signer;
   let deployerAddress,
     ownerAddress,
@@ -36,16 +36,11 @@ describe("integration", () => {
     bidderBAddress,
     otherUserAddress: string;
 
-  async function deploy(): Promise<ReserveAuction> {
-    const ReserveAuction = await ethers.getContractFactory("ReserveAuction");
-    const impl = await ReserveAuction.deploy();
-    const ZoraProxy = await ethers.getContractFactory("ZoraProxy");
-    const [admin] = await ethers.getSigners();
-    const proxy = await ZoraProxy.deploy(impl.address, admin.address);
-    const auction = ReserveAuction.attach(proxy.address).connect(admin);
-    await auction.configure(media.address, weth.address);
+  async function deploy(): Promise<AuctionHouse> {
+    const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
+    const auctionHouse = await AuctionHouse.deploy(media.address, weth.address);
 
-    return auction as ReserveAuction;
+    return auctionHouse as AuctionHouse;
   }
 
   beforeEach(async () => {

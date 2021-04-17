@@ -2,7 +2,7 @@
 
 // FOR TEST PURPOSES ONLY. NOT PRODUCTION SAFE
 pragma solidity 0.6.8;
-import {IReserveAuction} from "../interfaces/IReserveAuction.sol";
+import {IAuctionHouse} from "../interfaces/IAuctionHouse.sol";
 
 // This contract is meant to mimic a bidding contract that does not implement on IERC721 Received,
 // and thus should cause a revert when an auction is finalized with this as the winning bidder.
@@ -14,7 +14,7 @@ contract BadBidder {
     }
 
     function placeBid(uint256 tokenId, uint256 amount) external payable {
-        IReserveAuction(auction).createBid{value: amount}(tokenId, amount);
+        IAuctionHouse(auction).createBid{value: amount}(tokenId, amount);
     }
 
     receive() external payable {}

@@ -4,9 +4,9 @@ pragma solidity 0.6.8;
 pragma experimental ABIEncoderV2;
 
 /**
- * @title Interface for Reserve Auctions
+ * @title Interface for Auction Houses
  */
-interface IReserveAuction {
+interface IAuctionHouse {
     struct Auction {
         // Whether or not the auction curator has approved the auction to start
         bool approved;
@@ -68,8 +68,6 @@ interface IReserveAuction {
         uint256 indexed tokenId,
         address creator
     );
-
-    function updatePaused(bool _paused) external;
 
     function createAuction(
         uint256 tokenId,

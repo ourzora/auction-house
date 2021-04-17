@@ -10,9 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IMarket, Decimal } from "@zoralabs/core/dist/contracts/interfaces/IMarket.sol";
 import { IMedia } from "@zoralabs/core/dist/contracts/interfaces/IMedia.sol";
-import { ZoraProxyStorage } from "./ZoraProxyStorage.sol";
-import { ReserveAuctionStorageV1 } from "./ReserveAuctionStorageV1.sol";
-import { IReserveAuction } from "./interfaces/IReserveAuction.sol";
+import { IAuctionHouse } from "./interfaces/IAuctionHouse.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -26,19 +24,28 @@ interface IMediaExtended is IMedia {
 }
 
 /**
- * @title An open reserve auction factory, enabling collectors and curators to run their own auctions
+ * @title An open auction house, enabling collectors and curators to run their own auctions
  */
-contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAuction, ReentrancyGuard {
+contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    /**
-     * @notice Require that this contract is not paused
-     */
-    modifier notPaused() {
-        require(!paused, "Must not be paused");
-        _;
-    }
+    // The minimum amount of time left in an auction after a new bid is created
+    uint256 public timeBuffer;
+
+    // The minimum percentage difference between the last bid amount and the current bid.
+    uint8 public minBidIncrementPercentage;
+
+    // The address of the zora protocol to use via this contract
+    address public zora;
+
+    // / The address of the WETH contract, so that any ETH transferred can be handled as an ERC-20
+    address public wethAddress;
+
+    // A mapping of all of the auctions currently running.
+    mapping(uint256 => IAuctionHouse.Auction) public auctions;
+
+    bytes4 constant interfaceId = 0x80ac58cd; // 721 interface id
 
     /**
      * @notice Require that the specified auction exists
@@ -48,14 +55,10 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
         _;
     }
 
-    /**
-     * @notice Configure the auction.
-     * @dev We use this function in lieu of a constructor in the event that
-     * there is a critical flaw in this contract and it must be upgraded.
-     * Note that the admin keys required to update the implementation should be
-     * burned shortly after this contract is deployed.
+    /*
+     * Constructor
      */
-    function configure(address _zora, address _weth) public onlyAdmin {
+    constructor(address _zora, address _weth) public {
         require(
             IERC165(_zora).supportsInterface(interfaceId),
             "Doesn't support NFT interface"
@@ -64,14 +67,6 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
         wethAddress = _weth;
         timeBuffer = 15 * 60; // extend 15 minutes after every bid made in last 15 minutes
         minBidIncrementPercentage = 10; // 10%
-    }
-
-    /**
-     * @notice Pause or unpause all auctions.
-     * @dev This function should be inaccessible once the admin key is burned.
-     */
-    function updatePaused(bool _paused) public override onlyAdmin {
-        paused = _paused;
     }
 
     /**
@@ -87,7 +82,7 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
         address payable curator,
         uint8 curatorFeePercentage,
         address auctionCurrency
-    ) public override notPaused nonReentrant {
+    ) public override nonReentrant {
         require(!_exists(tokenId), "Auction already exists");
         require(curatorFeePercentage < 100, "curatorFeePercentage must be less than 100");
         auctions[tokenId].duration = duration;
@@ -110,7 +105,7 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
      * @notice Approve an auction, opening up the auction for bids.
      * @dev Only callable by the curator. Cannot be called if the auction has already started.
      */
-    function setAuctionApproval(uint256 tokenId, bool approved) external notPaused auctionExists(tokenId) {
+    function setAuctionApproval(uint256 tokenId, bool approved) external auctionExists(tokenId) {
         require(msg.sender == auctions[tokenId].curator, "Must be auction curator");
         require(auctions[tokenId].firstBidTime == 0, "Auction has already started");
         _approveAuction(tokenId, approved);
@@ -126,7 +121,6 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
     external
     override
     payable
-    notPaused
     auctionExists(tokenId)
     nonReentrant
     {
@@ -198,7 +192,7 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
      * @dev If for some reason the bid cannot be placed on Zora (invalid bid shares, for example),
      * The auction is reset and the NFT is transferred back to the auction creator.
      */
-    function endAuction(uint256 tokenId) external override notPaused auctionExists(tokenId) nonReentrant {
+    function endAuction(uint256 tokenId) external override auctionExists(tokenId) nonReentrant {
         require(
             uint256(auctions[tokenId].firstBidTime) != 0,
             "Auction hasn't begun"
@@ -263,8 +257,8 @@ contract ReserveAuction is ZoraProxyStorage, ReserveAuctionStorageV1, IReserveAu
      */
     function cancelAuction(uint256 tokenId) external override nonReentrant auctionExists(tokenId) {
         require(
-            auctions[tokenId].creator == msg.sender || msg.sender == admin,
-            "Can only be called by auction creator, admin, or curator"
+            auctions[tokenId].creator == msg.sender || auctions[tokenId].curator == msg.sender,
+            "Can only be called by auction creator or curator"
         );
         require(
             uint256(auctions[tokenId].firstBidTime) == 0,
