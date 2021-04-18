@@ -33,9 +33,12 @@ export const deployZoraProtocol = async () => {
   return { market, media };
 };
 
-export const deployBidder = async (auction: string) => {
+export const deployBidder = async (auction: string, nftContract: string) => {
   return (await (
-    await (await ethers.getContractFactory("BadBidder")).deploy(auction)
+    await (await ethers.getContractFactory("BadBidder")).deploy(
+      auction,
+      nftContract
+    )
   ).deployed()) as BadBidder;
 };
 

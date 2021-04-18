@@ -21,7 +21,7 @@ interface IAuctionHouse {
         // The sale percentage to send to the curator
         uint8 curatorFeePercentage;
         // The address that should receive the funds once the NFT is sold.
-        address payable creator;
+        address payable tokenOwner;
         // The address of the current highest bid
         address payable bidder;
         // The address of the auction's curator.
@@ -34,20 +34,23 @@ interface IAuctionHouse {
 
     event AuctionCreated(
         uint256 indexed tokenId,
+        address indexed tokenContract,
         uint256 duration,
         uint256 reservePrice,
-        address creator,
+        address tokenOwner,
         address curator,
         uint8 curatorFeePercentage
     );
 
     event AuctionApprovalUpdated(
         uint256 indexed tokenId,
+        address indexed tokenContract,
         bool approved
     );
 
     event AuctionBid(
         uint256 indexed tokenId,
+        address indexed tokenContract,
         address sender,
         uint256 value,
         bool firstBid,
@@ -56,7 +59,8 @@ interface IAuctionHouse {
 
     event AuctionEnded(
         uint256 indexed tokenId,
-        address creator,
+        address indexed tokenContract,
+        address tokenOwner,
         address curator,
         address winner,
         uint256 amount,
@@ -66,22 +70,24 @@ interface IAuctionHouse {
 
     event AuctionCanceled(
         uint256 indexed tokenId,
-        address creator
+        address indexed tokenContract,
+        address tokenOwner
     );
 
     function createAuction(
         uint256 tokenId,
+        address tokenContract,
         uint256 duration,
         uint256 reservePrice,
-        address payable creator,
+        address payable tokenOwner,
         address payable curator,
         uint8 curatorFeePercentages,
         address auctionCurrency
     ) external;
 
-    function createBid(uint256 tokenId, uint256 amount) external payable;
+    function createBid(address tokenContract, uint256 tokenId, uint256 amount) external payable;
 
-    function endAuction(uint256 tokenId) external;
+    function endAuction(address tokenContract, uint256 tokenId) external;
 
-    function cancelAuction(uint256 tokenId) external;
+    function cancelAuction(address tokenContract, uint256 tokenId) external;
 }
