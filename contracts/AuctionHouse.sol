@@ -84,6 +84,10 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         uint8 curatorFeePercentage,
         address auctionCurrency
     ) public override nonReentrant {
+        require(
+            IERC165(tokenContract).supportsInterface(interfaceId),
+            "tokenContract does not support ERC721 interface"
+        );
         require(!_exists(tokenContract, tokenId), "Auction already exists");
         require(curatorFeePercentage < 100, "curatorFeePercentage must be less than 100");
         auctions[tokenContract][tokenId] = Auction({
@@ -150,13 +154,17 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             ),
             "Must send more than last bid by minBidIncrementPercentage amount"
         );
-        require(
-            IMarket(IMediaExtended(zora).marketContract()).isValidBid(
-                tokenId,
-                amount
-            ),
-            "Bid invalid for share splitting"
-        );
+
+        // For Zora Protocol, ensure that the bid is valid for the current bidShare configuration
+        if(tokenContract == zora) {
+            require(
+                IMarket(IMediaExtended(zora).marketContract()).isValidBid(
+                    tokenId,
+                    amount
+                ),
+                "Bid invalid for share splitting"
+            );
+        }
 
         // If this is the first valid bid, we should set the starting time now.
         // If it's not, then we should refund the last bidder
@@ -196,8 +204,8 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     }
 
     /**
-     * @notice End an auction, finalizing the bid on Zora and paying out the respective parties.
-     * @dev If for some reason the bid cannot be placed on Zora (invalid bid shares, for example),
+     * @notice End an auction, finalizing the bid on Zora if applicable and paying out the respective parties.
+     * @dev If for some reason the auction cannot be finalized (invalid token recipient, for example),
      * The auction is reset and the NFT is transferred back to the auction creator.
      */
     function endAuction(address tokenContract, uint256 tokenId) external override auctionExists(tokenContract, tokenId) nonReentrant {
@@ -214,14 +222,26 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address currency = auctions[tokenContract][tokenId].auctionCurrency == address(0) ? wethAddress : auctions[tokenContract][tokenId].auctionCurrency;
         uint256 curatorFee = 0;
 
+        uint256 tokenOwnerProfit = auctions[tokenContract][tokenId].amount;
 
-        (bool success, uint256 tokenOwnerProfit) = _handleZoraAuctionSettlement(tokenContract, tokenId);
-
-        if(success != true) {
-            _handleOutgoingBid(auctions[tokenContract][tokenId].bidder, auctions[tokenContract][tokenId].amount, auctions[tokenContract][tokenId].auctionCurrency);
-            _cancelAuction(tokenContract, tokenId);
-            return;
+        if(tokenContract == zora) {
+            // If the auction is running on zora, settle it on the protocol
+            (bool success, uint256 remainingProfit) = _handleZoraAuctionSettlement(tokenContract, tokenId);
+            tokenOwnerProfit = remainingProfit;
+            if(success != true) {
+                _handleOutgoingBid(auctions[tokenContract][tokenId].bidder, auctions[tokenContract][tokenId].amount, auctions[tokenContract][tokenId].auctionCurrency);
+                _cancelAuction(tokenContract, tokenId);
+                return;
+            }
+        } else {
+            // Otherwise, transfer the token to the winner and pay out the participants below
+            try IERC721(tokenContract).safeTransferFrom(address(this), auctions[tokenContract][tokenId].bidder, tokenId) {} catch {
+                _handleOutgoingBid(auctions[tokenContract][tokenId].bidder, auctions[tokenContract][tokenId].amount, auctions[tokenContract][tokenId].auctionCurrency);
+                _cancelAuction(tokenContract, tokenId);
+                return;
+            }
         }
+
 
         if(auctions[tokenContract][tokenId].curator != address(0)) {
             curatorFee = tokenOwnerProfit.mul(auctions[tokenContract][tokenId].curatorFeePercentage).div(100);

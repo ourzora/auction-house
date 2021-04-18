@@ -3,12 +3,13 @@ import asPromised from "chai-as-promised";
 // @ts-ignore
 import { ethers } from "hardhat";
 import { Market, Media } from "@zoralabs/core/dist/typechain";
-import { AuctionHouse, BadBidder } from "../typechain";
+import { AuctionHouse, BadBidder, TestERC721, BadERC721 } from "../typechain";
 import { formatUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, Signer } from "ethers";
 import {
   approveAuction,
   deployBidder,
+  deployOtherNFTs,
   deployWETH,
   deployZoraProtocol,
   mint,
@@ -23,13 +24,18 @@ describe("AuctionHouse", () => {
   let market: Market;
   let media: Media;
   let weth: Contract;
+  let badERC721: BadERC721;
+  let testERC721: TestERC721;
 
   beforeEach(async () => {
     await ethers.provider.send("hardhat_reset", []);
     const contracts = await deployZoraProtocol();
+    const nfts = await deployOtherNFTs();
     market = contracts.market;
     media = contracts.media;
     weth = await deployWETH();
+    badERC721 = nfts.bad;
+    testERC721 = nfts.test;
   });
 
   async function deploy(): Promise<AuctionHouse> {
@@ -97,6 +103,28 @@ describe("AuctionHouse", () => {
       auctionHouse = await deploy();
       await mint(media);
       await approveAuction(media, auctionHouse);
+    });
+
+    it("should revert if the token contract does not support the ERC721 interface", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const owner = await media.ownerOf(0);
+      const [_, curator] = await ethers.getSigners();
+
+      await expect(
+        auctionHouse.createAuction(
+          0,
+          badERC721.address,
+          duration,
+          reservePrice,
+          owner,
+          curator.address,
+          5,
+          "0x0000000000000000000000000000000000000000"
+        )
+      ).eventually.rejectedWith(
+        revert`tokenContract does not support ERC721 interface`
+      );
     });
 
     it("should revert if the token ID does not exist", async () => {

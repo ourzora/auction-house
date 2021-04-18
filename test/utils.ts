@@ -5,7 +5,13 @@ import {
   Media,
   MediaFactory,
 } from "@zoralabs/core/dist/typechain";
-import { BadBidder, AuctionHouse, WETH } from "../typechain";
+import {
+  BadBidder,
+  AuctionHouse,
+  WETH,
+  BadERC721,
+  TestERC721,
+} from "../typechain";
 import { sha256 } from "ethers/lib/utils";
 import Decimal from "../utils/Decimal";
 import { BigNumber } from "ethers";
@@ -21,6 +27,17 @@ export const TWO_ETH = ethers.utils.parseUnits("2", "ether") as BigNumber;
 export const deployWETH = async () => {
   const [deployer] = await ethers.getSigners();
   return (await (await ethers.getContractFactory("WETH")).deploy()) as WETH;
+};
+
+export const deployOtherNFTs = async () => {
+  const bad = (await (
+    await ethers.getContractFactory("BadERC721")
+  ).deploy()) as BadERC721;
+  const test = (await (
+    await ethers.getContractFactory("TestERC721")
+  ).deploy()) as TestERC721;
+
+  return { bad, test };
 };
 
 export const deployZoraProtocol = async () => {
