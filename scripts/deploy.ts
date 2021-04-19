@@ -1,12 +1,7 @@
 // @ts-ignore
 import { ethers } from "hardhat";
 import fs from "fs-extra";
-import {
-  ReserveAuction,
-  ReserveAuction__factory,
-  ZoraProxy,
-  ZoraProxy__factory,
-} from "../typechain";
+import { AuctionHouse } from "../typechain";
 
 async function main() {
   const args = require("minimist")(process.argv.slice(2));
@@ -40,40 +35,27 @@ async function main() {
   if (!protocolAddressBook.media) {
     throw new Error("Missing Media address in protocol address book.");
   }
-  if (addressBook.reserveAuctionImplementation) {
+  if (addressBook.auctionHouse) {
     throw new Error(
-      "reserveAuctionImplementation already in address book, it must be moved before deploying."
-    );
-  }
-  if (addressBook.reserveAuctionProxy) {
-    throw new Error(
-      "reserveAuctionProxy already in address book, it must be moved before deploying."
+      "auctionHouse already in address book, it must be moved before deploying."
     );
   }
 
   // We get the contract to deploy
-  const ReserveAuction = (await ethers.getContractFactory(
-    "ReserveAuction",
+  const AuctionHouse = (await ethers.getContractFactory(
+    "AuctionHouse",
     wallet
-  )) as ReserveAuction__factory;
-  const ZoraProxy = (await ethers.getContractFactory(
-    "ZoraProxy",
-    wallet
-  )) as ZoraProxy__factory;
+  )) as AuctionHouse;
 
-  console.log("Deploying auction implementation...");
-  const impl = await ReserveAuction.deploy();
-  addressBook.reserveAuctionImplementation = impl.address;
-  console.log("Deploying proxy...");
-  const proxy = await ZoraProxy.deploy(impl.address, wallet.address);
-
-  const auction = ReserveAuction.attach(proxy.address).connect(wallet);
-  addressBook.reserveAuctionProxy = auction.address;
-  console.log("Configuring auction proxy...");
-  await auction.configure(protocolAddressBook.media, addressBook.weth);
+  console.log("Deploying Auction House...");
+  const impl = await AuctionHouse.deploy(
+    protocolAddressBook.media,
+    addressBook.weth
+  );
+  addressBook.auctionHouse = impl.address;
 
   await fs.writeFile(addressPath, JSON.stringify(addressBook, null, 2));
-  console.log("Reserve Auction contracts deployed and configured 📿");
+  console.log("Auction House contracts deployed and configured 📿");
 }
 
 main()

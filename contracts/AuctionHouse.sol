@@ -116,7 +116,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
      * @notice Approve an auction, opening up the auction for bids.
      * @dev Only callable by the curator. Cannot be called if the auction has already started.
      */
-    function setAuctionApproval(address tokenContract, uint256 tokenId, bool approved) external auctionExists(tokenContract, tokenId) {
+    function setAuctionApproval(address tokenContract, uint256 tokenId, bool approved) external override auctionExists(tokenContract, tokenId) {
         require(msg.sender == auctions[tokenContract][tokenId].curator, "Must be auction curator");
         require(auctions[tokenContract][tokenId].firstBidTime == 0, "Auction has already started");
         _approveAuction(tokenContract, tokenId, approved);
