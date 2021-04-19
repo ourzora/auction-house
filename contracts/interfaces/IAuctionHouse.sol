@@ -85,6 +85,8 @@ interface IAuctionHouse {
         address auctionCurrency
     ) external;
 
+    function setAuctionApproval(address tokenContract, uint256 tokenId, bool approved) external;
+
     function createBid(address tokenContract, uint256 tokenId, uint256 amount) external payable;
 
     function endAuction(address tokenContract, uint256 tokenId) external;
