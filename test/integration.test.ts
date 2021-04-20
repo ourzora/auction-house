@@ -94,7 +94,6 @@ describe("integration", () => {
           media.address,
           ONE_DAY,
           TENTH_ETH,
-          owner.address,
           ethers.constants.AddressZero,
           0,
           ethers.constants.AddressZero
@@ -170,7 +169,6 @@ describe("integration", () => {
           media.address,
           ONE_DAY,
           TENTH_ETH,
-          owner.address,
           curatorAddress,
           20,
           ethers.constants.AddressZero
@@ -259,7 +257,6 @@ describe("integration", () => {
           media.address,
           ONE_DAY,
           TENTH_ETH,
-          owner.address,
           ethers.constants.AddressZero,
           20,
           weth.address
@@ -327,7 +324,6 @@ describe("integration", () => {
           media.address,
           ONE_DAY,
           TENTH_ETH,
-          owner.address,
           curator.address,
           20,
           weth.address
@@ -405,7 +401,6 @@ describe("integration", () => {
           otherNft.address,
           ONE_DAY,
           TENTH_ETH,
-          owner.address,
           curatorAddress,
           20,
           ethers.constants.AddressZero

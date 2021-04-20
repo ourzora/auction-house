@@ -21,7 +21,7 @@ interface IAuctionHouse {
         // The sale percentage to send to the curator
         uint8 curatorFeePercentage;
         // The address that should receive the funds once the NFT is sold.
-        address payable tokenOwner;
+        address tokenOwner;
         // The address of the current highest bid
         address payable bidder;
         // The address of the auction's curator.
@@ -80,7 +80,6 @@ interface IAuctionHouse {
         address tokenContract,
         uint256 duration,
         uint256 reservePrice,
-        address payable tokenOwner,
         address payable curator,
         uint8 curatorFeePercentages,
         address auctionCurrency

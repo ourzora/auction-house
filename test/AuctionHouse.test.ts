@@ -53,14 +53,12 @@ describe("AuctionHouse", () => {
     const tokenId = 0;
     const duration = 60 * 60 * 24;
     const reservePrice = BigNumber.from(10).pow(18).div(2);
-    const owner = await media.ownerOf(0);
 
     await auctionHouse.createAuction(
       tokenId,
       media.address,
       duration,
       reservePrice,
-      owner,
       curator,
       5,
       currency
@@ -108,7 +106,6 @@ describe("AuctionHouse", () => {
     it("should revert if the token contract does not support the ERC721 interface", async () => {
       const duration = 60 * 60 * 24;
       const reservePrice = BigNumber.from(10).pow(18).div(2);
-      const owner = await media.ownerOf(0);
       const [_, curator] = await ethers.getSigners();
 
       await expect(
@@ -117,7 +114,6 @@ describe("AuctionHouse", () => {
           badERC721.address,
           duration,
           reservePrice,
-          owner,
           curator.address,
           5,
           "0x0000000000000000000000000000000000000000"
@@ -127,26 +123,48 @@ describe("AuctionHouse", () => {
       );
     });
 
+    it("should revert if the caller is not approved", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const [_, curator, __, ___, unapproved] = await ethers.getSigners();
+      await expect(
+        auctionHouse
+          .connect(unapproved)
+          .createAuction(
+            0,
+            media.address,
+            duration,
+            reservePrice,
+            curator.address,
+            5,
+            "0x0000000000000000000000000000000000000000"
+          )
+      ).eventually.rejectedWith(
+        revert`Caller must be approved or owner for token id`
+      );
+    });
+
     it("should revert if the token ID does not exist", async () => {
       const tokenId = 999;
       const duration = 60 * 60 * 24;
       const reservePrice = BigNumber.from(10).pow(18).div(2);
       const owner = await media.ownerOf(0);
-      const [_, curator] = await ethers.getSigners();
+      const [admin, curator] = await ethers.getSigners();
 
       await expect(
-        auctionHouse.createAuction(
-          tokenId,
-          media.address,
-          duration,
-          reservePrice,
-          owner,
-          curator.address,
-          5,
-          "0x0000000000000000000000000000000000000000"
-        )
+        auctionHouse
+          .connect(admin)
+          .createAuction(
+            tokenId,
+            media.address,
+            duration,
+            reservePrice,
+            curator.address,
+            5,
+            "0x0000000000000000000000000000000000000000"
+          )
       ).eventually.rejectedWith(
-        revert`ERC721: operator query for nonexistent token`
+        revert`ERC721: owner query for nonexistent token`
       );
     });
 
@@ -162,7 +180,6 @@ describe("AuctionHouse", () => {
           media.address,
           duration,
           reservePrice,
-          owner,
           curator.address,
           100,
           "0x0000000000000000000000000000000000000000"
@@ -221,6 +238,7 @@ describe("AuctionHouse", () => {
           null,
           null,
           null,
+          null,
           null
         ),
         block
@@ -252,7 +270,10 @@ describe("AuctionHouse", () => {
       auctionHouse = (await deploy()).connect(curator) as AuctionHouse;
       await mint(media);
       await approveAuction(media, auctionHouse);
-      await createAuction(auctionHouse, await curator.getAddress());
+      await createAuction(
+        auctionHouse.connect(admin),
+        await curator.getAddress()
+      );
     });
 
     it("should revert if the auctionHouse does not exist", async () => {
@@ -311,7 +332,10 @@ describe("AuctionHouse", () => {
       auctionHouse = (await (await deploy()).connect(bidderA)) as AuctionHouse;
       await mint(media);
       await approveAuction(media, auctionHouse);
-      await createAuction(auctionHouse, await curator.getAddress());
+      await createAuction(
+        auctionHouse.connect(admin),
+        await curator.getAddress()
+      );
       await auctionHouse
         .connect(curator)
         .setAuctionApproval(media.address, 0, true);
@@ -585,7 +609,10 @@ describe("AuctionHouse", () => {
       auctionHouse = (await deploy()).connect(creator) as AuctionHouse;
       await mint(media.connect(creator));
       await approveAuction(media.connect(creator), auctionHouse);
-      await createAuction(auctionHouse, await curator.getAddress());
+      await createAuction(
+        auctionHouse.connect(creator),
+        await curator.getAddress()
+      );
       await auctionHouse
         .connect(curator)
         .setAuctionApproval(media.address, 0, true);

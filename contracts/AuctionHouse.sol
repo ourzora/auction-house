@@ -79,7 +79,6 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address tokenContract,
         uint256 duration,
         uint256 reservePrice,
-        address payable tokenOwner,
         address payable curator,
         uint8 curatorFeePercentage,
         address auctionCurrency
@@ -90,6 +89,9 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         );
         require(!_exists(tokenContract, tokenId), "Auction already exists");
         require(curatorFeePercentage < 100, "curatorFeePercentage must be less than 100");
+        address tokenOwner = IERC721(tokenContract).ownerOf(tokenId);
+        require(msg.sender == IERC721(tokenContract).getApproved(tokenId) || msg.sender == tokenOwner, "Caller must be approved or owner for token id");
+
         auctions[tokenContract][tokenId] = Auction({
             approved: false,
             amount: 0,
@@ -300,7 +302,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         }
     }
 
-    function _handleOutgoingBid(address payable to, uint256 amount, address currency) internal {
+    function _handleOutgoingBid(address to, uint256 amount, address currency) internal {
         // If the auction is in ETH, unwrap it from its underlying WETH and try to send it to the recipient.
         if(currency == address(0)) {
             IWETH(wethAddress).withdraw(amount);
@@ -322,7 +324,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
     function _cancelAuction(address tokenContract, uint256 tokenId) internal {
         address tokenOwner = auctions[tokenContract][tokenId].tokenOwner;
-        IERC721(zora).safeTransferFrom(address(this), tokenOwner, tokenId);
+        IERC721(tokenContract).safeTransferFrom(address(this), tokenOwner, tokenId);
 
         delete auctions[tokenContract][tokenId];
         emit AuctionCanceled(tokenId, tokenContract, tokenOwner);
