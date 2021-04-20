@@ -105,7 +105,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
         IERC721(tokenContract).transferFrom(tokenOwner, address(this), tokenId);
 
-        emit AuctionCreated(tokenId, tokenContract, duration, reservePrice, tokenOwner, curator, curatorFeePercentage);
+        emit AuctionCreated(tokenId, tokenContract, duration, reservePrice, tokenOwner, curator, curatorFeePercentage, auctionCurrency);
 
         if(auctions[tokenContract][tokenId].curator == address(0) || auctions[tokenContract][tokenId].curator == tokenOwner) {
             _approveAuction(tokenContract, tokenId, true);

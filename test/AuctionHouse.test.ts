@@ -235,6 +235,9 @@ describe("AuctionHouse", () => {
       expect(logDescription.args.curatorFeePercentage).to.eq(
         currAuction.curatorFeePercentage
       );
+      expect(logDescription.args.auctionCurrency).to.eq(
+        ethers.constants.AddressZero
+      );
     });
   });
 

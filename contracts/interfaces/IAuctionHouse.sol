@@ -39,7 +39,8 @@ interface IAuctionHouse {
         uint256 reservePrice,
         address tokenOwner,
         address curator,
-        uint8 curatorFeePercentage
+        uint8 curatorFeePercentage,
+        address auctionCurrency
     );
 
     event AuctionApprovalUpdated(
