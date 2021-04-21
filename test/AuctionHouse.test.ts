@@ -239,6 +239,7 @@ describe("AuctionHouse", () => {
           null,
           null,
           null,
+          null,
           null
         ),
         block
@@ -310,7 +311,7 @@ describe("AuctionHouse", () => {
       const block = await ethers.provider.getBlockNumber();
       await auctionHouse.setAuctionApproval(media.address, 0, true);
       const events = await auctionHouse.queryFilter(
-        auctionHouse.filters.AuctionApprovalUpdated(null, null, null),
+        auctionHouse.filters.AuctionApprovalUpdated(null, null, null, null),
         block
       );
       expect(events.length).eq(1);
@@ -426,13 +427,22 @@ describe("AuctionHouse", () => {
           value: ONE_ETH,
         });
         const events = await auctionHouse.queryFilter(
-          auctionHouse.filters.AuctionBid(null, null, null, null, null, null),
+          auctionHouse.filters.AuctionBid(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ),
           block
         );
         expect(events.length).eq(1);
         const logDescription = auctionHouse.interface.parseLog(events[0]);
 
         expect(logDescription.name).to.eq("AuctionBid");
+        expect(logDescription.args.auctionId).to.eq(0);
         expect(logDescription.args.sender).to.eq(await bidderA.getAddress());
         expect(logDescription.args.value).to.eq(ONE_ETH);
         expect(logDescription.args.firstBid).to.eq(true);
@@ -521,7 +531,15 @@ describe("AuctionHouse", () => {
           value: TWO_ETH,
         });
         const events = await auctionHouse.queryFilter(
-          auctionHouse.filters.AuctionBid(null, null, null, null, null, null),
+          auctionHouse.filters.AuctionBid(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ),
           block
         );
         expect(events.length).eq(2);
@@ -562,7 +580,15 @@ describe("AuctionHouse", () => {
             value: TWO_ETH,
           });
           const events = await auctionHouse.queryFilter(
-            auctionHouse.filters.AuctionBid(null, null, null, null, null, null),
+            auctionHouse.filters.AuctionBid(
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ),
             block
           );
           expect(events.length).eq(2);
@@ -682,7 +708,7 @@ describe("AuctionHouse", () => {
       const block = await ethers.provider.getBlockNumber();
       await auctionHouse.cancelAuction(media.address, 0);
       const events = await auctionHouse.queryFilter(
-        auctionHouse.filters.AuctionCanceled(null, null, null),
+        auctionHouse.filters.AuctionCanceled(null, null, null, null),
         block
       );
       expect(events.length).eq(1);
@@ -808,6 +834,7 @@ describe("AuctionHouse", () => {
         await auctionHouse.endAuction(media.address, 0);
         const events = await auctionHouse.queryFilter(
           auctionHouse.filters.AuctionEnded(
+            null,
             null,
             null,
             null,

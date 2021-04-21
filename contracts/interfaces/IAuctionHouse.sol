@@ -8,6 +8,8 @@ pragma experimental ABIEncoderV2;
  */
 interface IAuctionHouse {
     struct Auction {
+        // ID for the auction, used for tracking events
+        uint256 auctionId;
         // Whether or not the auction curator has approved the auction to start
         bool approved;
         // The current highest bid amount
@@ -33,6 +35,7 @@ interface IAuctionHouse {
     }
 
     event AuctionCreated(
+        uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
         uint256 duration,
@@ -44,12 +47,14 @@ interface IAuctionHouse {
     );
 
     event AuctionApprovalUpdated(
+        uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
         bool approved
     );
 
     event AuctionBid(
+        uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
         address sender,
@@ -59,6 +64,7 @@ interface IAuctionHouse {
     );
 
     event AuctionEnded(
+        uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
         address tokenOwner,
@@ -70,6 +76,7 @@ interface IAuctionHouse {
     );
 
     event AuctionCanceled(
+        uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
         address tokenOwner

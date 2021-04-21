@@ -8,6 +8,7 @@ import { IERC721, IERC165 } from "@openzeppelin/contracts/token/ERC721/IERC721.s
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import { IMarket, Decimal } from "@zoralabs/core/dist/contracts/interfaces/IMarket.sol";
 import { IMedia } from "@zoralabs/core/dist/contracts/interfaces/IMedia.sol";
 import { IAuctionHouse } from "./interfaces/IAuctionHouse.sol";
@@ -29,6 +30,7 @@ interface IMediaExtended is IMedia {
 contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using Counters for Counters.Counter;
 
     // The minimum amount of time left in an auction after a new bid is created
     uint256 public timeBuffer;
@@ -46,6 +48,8 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     mapping(address => mapping(uint256 => IAuctionHouse.Auction)) public auctions;
 
     bytes4 constant interfaceId = 0x80ac58cd; // 721 interface id
+
+    Counters.Counter private _auctionIdTracker;
 
     /**
      * @notice Require that the specified auction exists
@@ -91,8 +95,10 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         require(curatorFeePercentage < 100, "curatorFeePercentage must be less than 100");
         address tokenOwner = IERC721(tokenContract).ownerOf(tokenId);
         require(msg.sender == IERC721(tokenContract).getApproved(tokenId) || msg.sender == tokenOwner, "Caller must be approved or owner for token id");
+        uint256 auctionId = _auctionIdTracker.current();
 
         auctions[tokenContract][tokenId] = Auction({
+            auctionId: auctionId,
             approved: false,
             amount: 0,
             duration: duration,
@@ -107,7 +113,10 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
         IERC721(tokenContract).transferFrom(tokenOwner, address(this), tokenId);
 
-        emit AuctionCreated(tokenId, tokenContract, duration, reservePrice, tokenOwner, curator, curatorFeePercentage, auctionCurrency);
+        _auctionIdTracker.increment();
+
+        emit AuctionCreated(auctionId, tokenId, tokenContract, duration, reservePrice, tokenOwner, curator, curatorFeePercentage, auctionCurrency);
+
 
         if(auctions[tokenContract][tokenId].curator == address(0) || auctions[tokenContract][tokenId].curator == tokenOwner) {
             _approveAuction(tokenContract, tokenId, true);
@@ -196,6 +205,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         }
 
         emit AuctionBid(
+            auctions[tokenContract][tokenId].auctionId,
             tokenId,
             tokenContract,
             msg.sender,
@@ -253,6 +263,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         _handleOutgoingBid(auctions[tokenContract][tokenId].tokenOwner, tokenOwnerProfit, auctions[tokenContract][tokenId].auctionCurrency);
 
         emit AuctionEnded(
+            auctions[tokenContract][tokenId].auctionId,
             tokenId,
             tokenContract,
             auctions[tokenContract][tokenId].tokenOwner,
@@ -325,14 +336,15 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     function _cancelAuction(address tokenContract, uint256 tokenId) internal {
         address tokenOwner = auctions[tokenContract][tokenId].tokenOwner;
         IERC721(tokenContract).safeTransferFrom(address(this), tokenOwner, tokenId);
+        uint256 auctionId = auctions[tokenContract][tokenId].auctionId;
 
         delete auctions[tokenContract][tokenId];
-        emit AuctionCanceled(tokenId, tokenContract, tokenOwner);
+        emit AuctionCanceled(auctionId, tokenId, tokenContract, tokenOwner);
     }
 
     function _approveAuction(address tokenContract, uint256 tokenId, bool approved) internal {
         auctions[tokenContract][tokenId].approved = approved;
-        emit AuctionApprovalUpdated(tokenId, tokenContract, approved);
+        emit AuctionApprovalUpdated(auctions[tokenContract][tokenId].auctionId, tokenId, tokenContract, approved);
     }
 
     function _exists(address tokenContract, uint256 tokenId) internal returns(bool) {
