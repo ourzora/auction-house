@@ -152,7 +152,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         require(
             auctions[tokenContract][tokenId].firstBidTime == 0 ||
             block.timestamp <
-            auctions[tokenContract][tokenId].firstBidTime + auctions[tokenContract][tokenId].duration,
+            auctions[tokenContract][tokenId].firstBidTime.add(auctions[tokenContract][tokenId].duration),
             "Auction expired"
         );
         require(
@@ -200,7 +200,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
                 block.timestamp
             ) < timeBuffer
         ) {
-            auctions[tokenContract][tokenId].duration += timeBuffer;
+            auctions[tokenContract][tokenId].duration = auctions[tokenContract][tokenId].duration.add(timeBuffer);
             extended = true;
         }
 
@@ -227,7 +227,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         );
         require(
             block.timestamp >=
-            auctions[tokenContract][tokenId].firstBidTime + auctions[tokenContract][tokenId].duration,
+            auctions[tokenContract][tokenId].firstBidTime.add(auctions[tokenContract][tokenId].duration),
             "Auction hasn't completed"
         );
 
