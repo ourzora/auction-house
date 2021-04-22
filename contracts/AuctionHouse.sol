@@ -118,7 +118,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionCreated(auctionId, tokenId, tokenContract, duration, reservePrice, tokenOwner, curator, curatorFeePercentage, auctionCurrency);
 
 
-        if(auctions[auctionId].curator == address(0) || auctions[auctionId].curator == tokenOwner) {
+        if(auctions[auctionId].curator == address(0) || curator == tokenOwner) {
             _approveAuction(auctionId, true);
         }
 
@@ -149,7 +149,6 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     nonReentrant
     {
         address payable lastBidder = auctions[auctionId].bidder;
-        uint256 lastBidAmount = auctions[auctionId].amount;
         require(auctions[auctionId].approved, "Auction must be approved by curator");
         require(
             auctions[auctionId].firstBidTime == 0 ||
@@ -184,7 +183,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         if(auctions[auctionId].firstBidTime == 0) {
             auctions[auctionId].firstBidTime = block.timestamp;
         } else if(lastBidder != address(0)) {
-            _handleOutgoingBid(lastBidder, lastBidAmount, auctions[auctionId].auctionCurrency);
+            _handleOutgoingBid(lastBidder, auctions[auctionId].amount, auctions[auctionId].auctionCurrency);
         }
 
         _handleIncomingBid(amount, auctions[auctionId].auctionCurrency);
