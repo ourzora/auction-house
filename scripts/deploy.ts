@@ -47,15 +47,21 @@ async function main() {
     wallet
   )) as AuctionHouse;
 
-  console.log("Deploying Auction House...");
+  console.log(
+    `Deploying Auction House from deployment address ${wallet.address}...`
+  );
   const impl = await AuctionHouse.deploy(
     protocolAddressBook.media,
     addressBook.weth
   );
+  console.log(
+    `Auction House deploying to ${impl.address}. Awaiting confirmation...`
+  );
+  await impl.deployed();
   addressBook.auctionHouse = impl.address;
-
   await fs.writeFile(addressPath, JSON.stringify(addressBook, null, 2));
-  console.log("Auction House contracts deployed and configured 📿");
+
+  console.log("Auction House contracts deployed 📿");
 }
 
 main()
