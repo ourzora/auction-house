@@ -15,8 +15,8 @@ contract BadBidder {
         zora = _zora;
     }
 
-    function placeBid(uint256 tokenId, uint256 amount) external payable {
-        IAuctionHouse(auction).createBid{value: amount}(zora, tokenId, amount);
+    function placeBid(uint256 auctionId, uint256 amount) external payable {
+        IAuctionHouse(auction).createBid{value: amount}(auctionId, amount);
     }
 
     receive() external payable {}

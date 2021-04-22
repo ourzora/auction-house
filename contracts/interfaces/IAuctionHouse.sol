@@ -8,8 +8,10 @@ pragma experimental ABIEncoderV2;
  */
 interface IAuctionHouse {
     struct Auction {
-        // ID for the auction, used for tracking events
-        uint256 auctionId;
+        // ID for the ERC721 token
+        uint256 tokenId;
+        // Address for the ERC721 contract
+        address tokenContract;
         // Whether or not the auction curator has approved the auction to start
         bool approved;
         // The current highest bid amount
@@ -90,13 +92,13 @@ interface IAuctionHouse {
         address payable curator,
         uint8 curatorFeePercentages,
         address auctionCurrency
-    ) external;
+    ) external returns (uint256);
 
-    function setAuctionApproval(address tokenContract, uint256 tokenId, bool approved) external;
+    function setAuctionApproval(uint256 auctionId, bool approved) external;
 
-    function createBid(address tokenContract, uint256 tokenId, uint256 amount) external payable;
+    function createBid(uint256 auctionId, uint256 amount) external payable;
 
-    function endAuction(address tokenContract, uint256 tokenId) external;
+    function endAuction(uint256 auctionId) external;
 
-    function cancelAuction(address tokenContract, uint256 tokenId) external;
+    function cancelAuction(uint256 auctionId) external;
 }

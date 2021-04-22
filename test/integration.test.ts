@@ -98,16 +98,12 @@ describe("integration", () => {
           0,
           ethers.constants.AddressZero
         );
-      await auction
-        .connect(bidderA)
-        .createBid(media.address, 0, ONE_ETH, { value: ONE_ETH });
-      await auction
-        .connect(bidderB)
-        .createBid(media.address, 0, TWO_ETH, { value: TWO_ETH });
+      await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
+      await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
       await ethers.provider.send("evm_setNextBlockTimestamp", [
         Date.now() + ONE_DAY,
       ]);
-      await auction.connect(otherUser).endAuction(media.address, 0);
+      await auction.connect(otherUser).endAuction(0);
     }
 
     it("should transfer the NFT to the winning bidder", async () => {
@@ -173,17 +169,13 @@ describe("integration", () => {
           20,
           ethers.constants.AddressZero
         );
-      await auction.connect(curator).setAuctionApproval(media.address, 0, true);
-      await auction
-        .connect(bidderA)
-        .createBid(media.address, 0, ONE_ETH, { value: ONE_ETH });
-      await auction
-        .connect(bidderB)
-        .createBid(media.address, 0, TWO_ETH, { value: TWO_ETH });
+      await auction.connect(curator).setAuctionApproval(0, true);
+      await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
+      await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
       await ethers.provider.send("evm_setNextBlockTimestamp", [
         Date.now() + ONE_DAY,
       ]);
-      await auction.connect(otherUser).endAuction(media.address, 0);
+      await auction.connect(otherUser).endAuction(0);
     }
 
     it("should transfer the NFT to the winning bidder", async () => {
@@ -265,16 +257,12 @@ describe("integration", () => {
       await weth.connect(bidderA).approve(auction.address, ONE_ETH);
       await weth.connect(bidderB).deposit({ value: TWO_ETH });
       await weth.connect(bidderB).approve(auction.address, TWO_ETH);
-      await auction
-        .connect(bidderA)
-        .createBid(media.address, 0, ONE_ETH, { value: ONE_ETH });
-      await auction
-        .connect(bidderB)
-        .createBid(media.address, 0, TWO_ETH, { value: TWO_ETH });
+      await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
+      await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
       await ethers.provider.send("evm_setNextBlockTimestamp", [
         Date.now() + ONE_DAY,
       ]);
-      await auction.connect(otherUser).endAuction(media.address, 0);
+      await auction.connect(otherUser).endAuction(0);
     }
 
     it("should transfer the NFT to the winning bidder", async () => {
@@ -328,21 +316,17 @@ describe("integration", () => {
           20,
           weth.address
         );
-      await auction.connect(curator).setAuctionApproval(media.address, 0, true);
+      await auction.connect(curator).setAuctionApproval(0, true);
       await weth.connect(bidderA).deposit({ value: ONE_ETH });
       await weth.connect(bidderA).approve(auction.address, ONE_ETH);
       await weth.connect(bidderB).deposit({ value: TWO_ETH });
       await weth.connect(bidderB).approve(auction.address, TWO_ETH);
-      await auction
-        .connect(bidderA)
-        .createBid(media.address, 0, ONE_ETH, { value: ONE_ETH });
-      await auction
-        .connect(bidderB)
-        .createBid(media.address, 0, TWO_ETH, { value: TWO_ETH });
+      await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
+      await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
       await ethers.provider.send("evm_setNextBlockTimestamp", [
         Date.now() + ONE_DAY,
       ]);
-      await auction.connect(otherUser).endAuction(media.address, 0);
+      await auction.connect(otherUser).endAuction(0);
     }
 
     it("should transfer the NFT to the winning bidder", async () => {
@@ -405,19 +389,13 @@ describe("integration", () => {
           20,
           ethers.constants.AddressZero
         );
-      await auction
-        .connect(curator)
-        .setAuctionApproval(otherNft.address, 0, true);
-      await auction
-        .connect(bidderA)
-        .createBid(otherNft.address, 0, ONE_ETH, { value: ONE_ETH });
-      await auction
-        .connect(bidderB)
-        .createBid(otherNft.address, 0, TWO_ETH, { value: TWO_ETH });
+      await auction.connect(curator).setAuctionApproval(0, true);
+      await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
+      await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
       await ethers.provider.send("evm_setNextBlockTimestamp", [
         Date.now() + ONE_DAY,
       ]);
-      await auction.connect(otherUser).endAuction(otherNft.address, 0);
+      await auction.connect(otherUser).endAuction(0);
     }
     it("should transfer the NFT to the winning bidder", async () => {
       await run();
