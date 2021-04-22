@@ -1,4 +1,4 @@
-# Zora Auction House 𓀨
+# Zora — Auction House 〜 𓀨 〜
 
 ![Auction House Header Image](./auction-house.png)
 
@@ -12,7 +12,7 @@ The Zora ethos is to create public goods that are either owned by the community 
 
 *Mainnet address:* `0x3f7B02844c6A4DED0e156A0372DcBea89C6FEc88`
 
-*Rinkedy address:* `0xd8De6F17E614229886b3A60d5537A268FEacbF3A`
+*Rinkeby address:* `0xd8De6F17E614229886b3A60d5537A268FEacbF3A`
 
 ## Table of Contents
 - [Architecture](#architecture)
