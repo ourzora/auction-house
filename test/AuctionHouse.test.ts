@@ -697,6 +697,7 @@ describe("AuctionHouse", () => {
 
       expect(logDescription.args.tokenId.toNumber()).to.eq(0);
       expect(logDescription.args.tokenOwner).to.eq(await creator.getAddress());
+      expect(logDescription.args.tokenContract).to.eq(media.address);
     });
   });
 

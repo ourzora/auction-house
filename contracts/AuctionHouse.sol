@@ -338,8 +338,8 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address tokenOwner = auctions[auctionId].tokenOwner;
         IERC721(auctions[auctionId].tokenContract).safeTransferFrom(address(this), tokenOwner, auctions[auctionId].tokenId);
 
-        delete auctions[auctionId];
         emit AuctionCanceled(auctionId, auctions[auctionId].tokenId, auctions[auctionId].tokenContract, tokenOwner);
+        delete auctions[auctionId];
     }
 
     function _approveAuction(uint256 auctionId, bool approved) internal {
