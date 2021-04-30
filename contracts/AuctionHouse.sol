@@ -135,6 +135,15 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         _approveAuction(auctionId, approved);
     }
 
+    function setAuctionReservePrice(uint256 auctionId, uint256 reservePrice) external override auctionExists(auctionId) {
+        require(msg.sender == auctions[auctionId].curator || msg.sender == auctions[auctionId].tokenOwner, "Must be auction curator or token owner");
+        require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
+
+        auctions[auctionId].reservePrice = reservePrice;
+
+        emit AuctionReservePriceUpdated(auctionId, auctions[auctionId].tokenId, auctions[auctionId].tokenContract, reservePrice);
+    }
+
     /**
      * @notice Create a bid on a token, with a given amount.
      * @dev If provided a valid bid, transfers the provided amount to this contract.

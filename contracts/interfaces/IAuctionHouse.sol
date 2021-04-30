@@ -55,6 +55,13 @@ interface IAuctionHouse {
         bool approved
     );
 
+    event AuctionReservePriceUpdated(
+        uint256 indexed auctionId,
+        uint256 indexed tokenId,
+        address indexed tokenContract,
+        uint256 reservePrice
+    );
+
     event AuctionBid(
         uint256 indexed auctionId,
         uint256 indexed tokenId,
@@ -95,6 +102,8 @@ interface IAuctionHouse {
     ) external returns (uint256);
 
     function setAuctionApproval(uint256 auctionId, bool approved) external;
+
+    function setAuctionReservePrice(uint256 auctionId, uint256 reservePrice) external;
 
     function createBid(uint256 auctionId, uint256 amount) external payable;
 

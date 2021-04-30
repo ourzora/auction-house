@@ -319,6 +319,76 @@ describe("AuctionHouse", () => {
     });
   });
 
+  describe("#setAuctionReservePrice", () => {
+    let auctionHouse: AuctionHouse;
+    let admin: Signer;
+    let creator: Signer;
+    let curator: Signer;
+    let bidder: Signer;
+
+    beforeEach(async () => {
+      [admin, creator, curator, bidder] = await ethers.getSigners();
+      auctionHouse = (await deploy()).connect(curator) as AuctionHouse;
+      await mint(media.connect(creator));
+      await approveAuction(
+        media.connect(creator),
+        auctionHouse.connect(creator)
+      );
+      await createAuction(
+        auctionHouse.connect(creator),
+        await curator.getAddress()
+      );
+    });
+
+    it("should revert if the auctionHouse does not exist", async () => {
+      await expect(
+        auctionHouse.setAuctionReservePrice(1, TWO_ETH)
+      ).eventually.rejectedWith(revert`Auction doesn't exist`);
+    });
+
+    it("should revert if not called by the curator or owner", async () => {
+      await expect(
+        auctionHouse.connect(admin).setAuctionReservePrice(0, TWO_ETH)
+      ).eventually.rejectedWith(revert`Must be auction curator`);
+    });
+
+    it("should revert if the auction has already started", async () => {
+      await auctionHouse.setAuctionReservePrice(0, TWO_ETH);
+      await auctionHouse.setAuctionApproval(0, true);
+      await auctionHouse
+        .connect(bidder)
+        .createBid(0, TWO_ETH, { value: TWO_ETH });
+      await expect(
+        auctionHouse.setAuctionReservePrice(0, ONE_ETH)
+      ).eventually.rejectedWith(revert`Auction has already started`);
+    });
+
+    it("should set the auction reserve price when called by the curator", async () => {
+      await auctionHouse.setAuctionReservePrice(0, TWO_ETH);
+
+      expect((await auctionHouse.auctions(0)).reservePrice).to.eq(TWO_ETH);
+    });
+
+    it("should set the auction reserve price when called by the token owner", async () => {
+      await auctionHouse.connect(creator).setAuctionReservePrice(0, TWO_ETH);
+
+      expect((await auctionHouse.auctions(0)).reservePrice).to.eq(TWO_ETH);
+    });
+
+    it("should emit an AuctionReservePriceUpdated event", async () => {
+      const block = await ethers.provider.getBlockNumber();
+      await auctionHouse.setAuctionReservePrice(0, TWO_ETH);
+      const events = await auctionHouse.queryFilter(
+        auctionHouse.filters.AuctionReservePriceUpdated(null, null, null, null),
+        block
+      );
+      expect(events.length).eq(1);
+      const logDescription = auctionHouse.interface.parseLog(events[0]);
+
+      expect(logDescription.args.reservePrice).to.eq(TWO_ETH);
+    });
+  });
+
   describe("#createBid", () => {
     let auctionHouse: AuctionHouse;
     let admin: Signer;
