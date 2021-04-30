@@ -70,7 +70,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         zora = _zora;
         wethAddress = _weth;
         timeBuffer = 15 * 60; // extend 15 minutes after every bid made in last 15 minutes
-        minBidIncrementPercentage = 10; // 10%
+        minBidIncrementPercentage = 5; // 5%
     }
 
     /**

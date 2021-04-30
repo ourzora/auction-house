@@ -82,8 +82,8 @@ describe("AuctionHouse", () => {
         "time buffer should equal 900"
       );
       expect(await auctionHouse.minBidIncrementPercentage()).to.eq(
-        10,
-        "minBidIncrementPercentage should equal 10%"
+        5,
+        "minBidIncrementPercentage should equal 5%"
       );
     });
 
