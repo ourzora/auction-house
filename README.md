@@ -10,9 +10,9 @@ Anyone is able to run an NFT auction on the protocol for free by simply not spec
 
 The Zora ethos is to create public goods that are either owned by the community or by no one. As such, we have deployed this without admin functionality, and is therefore entirely permissionless and unstoppable.
 
-*Mainnet address:* `0xce9890736CC356aE992D970cdFBd5b068c665916`
+*Mainnet address:* `0x90aD9C17f558db2105e2182a8A00A336af5de532`
 
-*Rinkeby address:* `0x71a416eD974739238a3D2DdDa63D937cf6154f47`
+*Rinkeby address:* `0x55cbAA8E50198659438D6EE30A6e43215Bd9E90c`
 
 ## Table of Contents
 - [Architecture](#architecture)
