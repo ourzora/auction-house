@@ -72,6 +72,13 @@ interface IAuctionHouse {
         bool extended
     );
 
+    event AuctionDurationExtended(
+        uint256 indexed auctionId,
+        uint256 indexed tokenId,
+        address indexed tokenContract,
+        uint256 duration
+    );
+
     event AuctionEnded(
         uint256 indexed auctionId,
         uint256 indexed tokenId,

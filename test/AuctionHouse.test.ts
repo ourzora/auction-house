@@ -626,7 +626,7 @@ describe("AuctionHouse", () => {
 
           const currAuction = await auctionHouse.auctions(0);
           expect(currAuction.duration).to.eq(
-            beforeDuration.add(await auctionHouse.timeBuffer())
+            beforeDuration.add(await auctionHouse.timeBuffer()).sub(1)
           );
         });
         it("should emit an AuctionBid event", async () => {

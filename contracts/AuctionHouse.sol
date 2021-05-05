@@ -210,7 +210,14 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
                 block.timestamp
             ) < timeBuffer
         ) {
-            auctions[auctionId].duration = auctions[auctionId].duration.add(timeBuffer);
+            // Playing code golf for gas optimization:
+            // uint256 expectedEnd = auctions[auctionId].firstBidTime.add(auctions[auctionId].duration);
+            // uint256 timeRemaining = expectedEnd.sub(block.timestamp);
+            // uint256 timeToAdd = timeBuffer.sub(timeRemaining);
+            // uint256 newDuration = auctions[auctionId].duration.add(timeToAdd);
+            uint256 oldDuration = auctions[auctionId].duration;
+            auctions[auctionId].duration =
+                oldDuration.add(timeBuffer.sub(auctions[auctionId].firstBidTime.add(oldDuration).sub(block.timestamp)));
             extended = true;
         }
 
@@ -223,6 +230,15 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             lastBidder == address(0), // firstBid boolean
             extended
         );
+
+        if (extended) {
+            emit AuctionDurationExtended(
+                auctionId,
+                auctions[auctionId].tokenId,
+                auctions[auctionId].tokenContract,
+                auctions[auctionId].duration
+            );
+        }
     }
 
     /**
@@ -356,7 +372,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionApprovalUpdated(auctionId, auctions[auctionId].tokenId, auctions[auctionId].tokenContract, approved);
     }
 
-    function _exists(uint256 auctionId) internal returns(bool) {
+    function _exists(uint256 auctionId) internal view returns(bool) {
         return auctions[auctionId].tokenOwner != address(0);
     }
 
