@@ -34,6 +34,9 @@ interface IAuctionHouse {
         // The address of the ERC-20 currency to run the auction with.
         // If set to 0x0, the auction will be run in ETH
         address auctionCurrency;
+        // buyItNowPrice == 0 is ignored
+        // otherwise if user bids buyItNowPrice when auction is running, user will instantly win and auction ends
+        //uint256 buyItNowPrice;
     }
 
     event AuctionCreated(

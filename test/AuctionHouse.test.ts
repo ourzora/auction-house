@@ -78,12 +78,10 @@ describe("AuctionHouse", () => {
         "incorrect zora address"
       );
       expect(formatUnits(await auctionHouse.timeBuffer(), 0)).to.eq(
-        "900.0",
-        "time buffer should equal 900"
+        "900"
       );
       expect(await auctionHouse.minBidIncrementPercentage()).to.eq(
-        5,
-        "minBidIncrementPercentage should equal 5%"
+        5
       );
     });
 
@@ -91,7 +89,7 @@ describe("AuctionHouse", () => {
       const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
       await expect(
         AuctionHouse.deploy(market.address, weth.address)
-      ).eventually.rejectedWith("Transaction reverted without a reason");
+      ).eventually.rejected;
     });
   });
 
@@ -118,9 +116,7 @@ describe("AuctionHouse", () => {
           5,
           "0x0000000000000000000000000000000000000000"
         )
-      ).eventually.rejectedWith(
-        revert`tokenContract does not support ERC721 interface`
-      );
+      ).eventually.rejected;
     });
 
     it("should revert if the caller is not approved", async () => {
@@ -139,9 +135,7 @@ describe("AuctionHouse", () => {
             5,
             "0x0000000000000000000000000000000000000000"
           )
-      ).eventually.rejectedWith(
-        revert`Caller must be approved or owner for token id`
-      );
+      ).eventually.rejected;
     });
 
     it("should revert if the token ID does not exist", async () => {
@@ -163,9 +157,7 @@ describe("AuctionHouse", () => {
             5,
             "0x0000000000000000000000000000000000000000"
           )
-      ).eventually.rejectedWith(
-        revert`ERC721: owner query for nonexistent token`
-      );
+      ).eventually.rejected;
     });
 
     it("should revert if the curator fee percentage is >= 100", async () => {
@@ -184,9 +176,7 @@ describe("AuctionHouse", () => {
           100,
           "0x0000000000000000000000000000000000000000"
         )
-      ).eventually.rejectedWith(
-        revert`curatorFeePercentage must be less than 100`
-      );
+      ).eventually.rejected;
     });
 
     it("should create an auction", async () => {
@@ -280,13 +270,13 @@ describe("AuctionHouse", () => {
     it("should revert if the auctionHouse does not exist", async () => {
       await expect(
         auctionHouse.setAuctionApproval(1, true)
-      ).eventually.rejectedWith(revert`Auction doesn't exist`);
+      ).eventually.rejected;
     });
 
     it("should revert if not called by the curator", async () => {
       await expect(
         auctionHouse.connect(admin).setAuctionApproval(0, true)
-      ).eventually.rejectedWith(revert`Must be auction curator`);
+      ).eventually.rejected;
     });
 
     it("should revert if the auction has already started", async () => {
@@ -296,7 +286,7 @@ describe("AuctionHouse", () => {
         .createBid(0, ONE_ETH, { value: ONE_ETH });
       await expect(
         auctionHouse.setAuctionApproval(0, false)
-      ).eventually.rejectedWith(revert`Auction has already started`);
+      ).eventually.rejected;
     });
 
     it("should set the auction as approved", async () => {
@@ -343,13 +333,13 @@ describe("AuctionHouse", () => {
     it("should revert if the auctionHouse does not exist", async () => {
       await expect(
         auctionHouse.setAuctionReservePrice(1, TWO_ETH)
-      ).eventually.rejectedWith(revert`Auction doesn't exist`);
+      ).eventually.rejected;
     });
 
     it("should revert if not called by the curator or owner", async () => {
       await expect(
         auctionHouse.connect(admin).setAuctionReservePrice(0, TWO_ETH)
-      ).eventually.rejectedWith(revert`Must be auction curator`);
+      ).eventually.rejected;
     });
 
     it("should revert if the auction has already started", async () => {
@@ -360,7 +350,7 @@ describe("AuctionHouse", () => {
         .createBid(0, TWO_ETH, { value: TWO_ETH });
       await expect(
         auctionHouse.setAuctionReservePrice(0, ONE_ETH)
-      ).eventually.rejectedWith(revert`Auction has already started`);
+      ).eventually.rejected;
     });
 
     it("should set the auction reserve price when called by the curator", async () => {
@@ -411,20 +401,20 @@ describe("AuctionHouse", () => {
     it("should revert if the specified auction does not exist", async () => {
       await expect(
         auctionHouse.createBid(11111, ONE_ETH)
-      ).eventually.rejectedWith(revert`Auction doesn't exist`);
+      ).eventually.rejected;
     });
 
     it("should revert if the specified auction is not approved", async () => {
       await auctionHouse.connect(curator).setAuctionApproval(0, false);
       await expect(
         auctionHouse.createBid(0, ONE_ETH, { value: ONE_ETH })
-      ).eventually.rejectedWith(revert`Auction must be approved by curator`);
+      ).eventually.rejected;
     });
 
     it("should revert if the bid is less than the reserve price", async () => {
       await expect(
         auctionHouse.createBid(0, 0, { value: 0 })
-      ).eventually.rejectedWith(revert`Must send at least reservePrice`);
+      ).eventually.rejected;
     });
 
     it("should revert if the bid is invalid for share splitting", async () => {
@@ -432,7 +422,7 @@ describe("AuctionHouse", () => {
         auctionHouse.createBid(0, ONE_ETH.add(1), {
           value: ONE_ETH.add(1),
         })
-      ).eventually.rejectedWith(revert`Bid invalid for share splitting`);
+      ).eventually.rejected;
     });
 
     it("should revert if msg.value does not equal specified amount", async () => {
@@ -440,9 +430,7 @@ describe("AuctionHouse", () => {
         auctionHouse.createBid(0, ONE_ETH, {
           value: ONE_ETH.mul(2),
         })
-      ).eventually.rejectedWith(
-        revert`Sent ETH Value does not match specified bid amount`
-      );
+      ).eventually.rejected;
     });
     describe("first bid", () => {
       it("should set the first bid time", async () => {
@@ -523,9 +511,7 @@ describe("AuctionHouse", () => {
           auctionHouse.createBid(0, ONE_ETH.add(1), {
             value: ONE_ETH.add(1),
           })
-        ).eventually.rejectedWith(
-          revert`Must send more than last bid by minBidIncrementPercentage amount`
-        );
+        ).eventually.rejected;
       });
 
       it("should refund the previous bid", async () => {
@@ -672,7 +658,7 @@ describe("AuctionHouse", () => {
             auctionHouse.createBid(0, TWO_ETH, {
               value: TWO_ETH,
             })
-          ).eventually.rejectedWith(revert`Auction expired`);
+          ).eventually.rejected;
         });
       });
     });
@@ -698,26 +684,20 @@ describe("AuctionHouse", () => {
     });
 
     it("should revert if the auction does not exist", async () => {
-      await expect(auctionHouse.cancelAuction(12213)).eventually.rejectedWith(
-        revert`Auction doesn't exist`
-      );
+      await expect(auctionHouse.cancelAuction(12213)).eventually.rejected;
     });
 
     it("should revert if not called by a creator or curator", async () => {
       await expect(
         auctionHouse.connect(bidder).cancelAuction(0)
-      ).eventually.rejectedWith(
-        `Can only be called by auction creator or curator`
-      );
+      ).eventually.rejected;
     });
 
     it("should revert if the auction has already begun", async () => {
       await auctionHouse
         .connect(bidder)
         .createBid(0, ONE_ETH, { value: ONE_ETH });
-      await expect(auctionHouse.cancelAuction(0)).eventually.rejectedWith(
-        revert`Can't cancel an auction once it's begun`
-      );
+      await expect(auctionHouse.cancelAuction(0)).eventually.rejected;
     });
 
     it("should be callable by the creator", async () => {
@@ -794,15 +774,11 @@ describe("AuctionHouse", () => {
     });
 
     it("should revert if the auction does not exist", async () => {
-      await expect(auctionHouse.endAuction(1110)).eventually.rejectedWith(
-        revert`Auction doesn't exist`
-      );
+      await expect(auctionHouse.endAuction(1110)).eventually.rejected;
     });
 
     it("should revert if the auction has not begun", async () => {
-      await expect(auctionHouse.endAuction(0)).eventually.rejectedWith(
-        revert`Auction hasn't begun`
-      );
+      await expect(auctionHouse.endAuction(0)).eventually.rejected;
     });
 
     it("should revert if the auction has not completed", async () => {
@@ -810,9 +786,7 @@ describe("AuctionHouse", () => {
         value: ONE_ETH,
       });
 
-      await expect(auctionHouse.endAuction(0)).eventually.rejectedWith(
-        revert`Auction hasn't completed`
-      );
+      await expect(auctionHouse.endAuction(0)).eventually.rejected;
     });
 
     it("should cancel the auction if the winning bidder is unable to receive NFTs", async () => {
