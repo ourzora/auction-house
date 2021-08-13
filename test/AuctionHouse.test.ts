@@ -503,6 +503,29 @@ describe("AuctionHouse", () => {
         expect(logDescription.args.firstBid).to.eq(true);
         expect(logDescription.args.extended).to.eq(false);
       });
+
+      it("buyItNow should work", async () => {
+        const block = await ethers.provider.getBlockNumber();
+        await auctionHouse.createBid(0, buyItNowPrice, {
+          value: buyItNowPrice,
+        });
+        const events = await auctionHouse.queryFilter(
+          auctionHouse.filters.AuctionEnded(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ),
+          block
+        );
+        expect(events.length).eq(1);
+        expect(await media.ownerOf(0)).to.eq(await bidderA.getAddress())
+      });
     });
 
     describe("second bid", () => {
