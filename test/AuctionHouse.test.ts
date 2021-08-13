@@ -19,6 +19,7 @@ import {
 } from "./utils";
 
 chai.use(asPromised);
+const buyItNowPrice =  BigNumber.from(10).pow(18).mul(10)
 
 describe("AuctionHouse", () => {
   let market: Market;
@@ -61,7 +62,8 @@ describe("AuctionHouse", () => {
       reservePrice,
       curator,
       5,
-      currency
+      currency,
+      buyItNowPrice
     );
   }
 
@@ -114,7 +116,8 @@ describe("AuctionHouse", () => {
           reservePrice,
           curator.address,
           5,
-          "0x0000000000000000000000000000000000000000"
+          "0x0000000000000000000000000000000000000000",
+          buyItNowPrice
         )
       ).eventually.rejected;
     });
@@ -133,7 +136,8 @@ describe("AuctionHouse", () => {
             reservePrice,
             curator.address,
             5,
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000",
+            buyItNowPrice
           )
       ).eventually.rejected;
     });
@@ -155,7 +159,8 @@ describe("AuctionHouse", () => {
             reservePrice,
             curator.address,
             5,
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000",
+            buyItNowPrice
           )
       ).eventually.rejected;
     });
@@ -174,7 +179,8 @@ describe("AuctionHouse", () => {
           reservePrice,
           curator.address,
           100,
-          "0x0000000000000000000000000000000000000000"
+          "0x0000000000000000000000000000000000000000",
+          buyItNowPrice
         )
       ).eventually.rejected;
     });
@@ -222,6 +228,7 @@ describe("AuctionHouse", () => {
       const currAuction = await auctionHouse.auctions(0);
       const events = await auctionHouse.queryFilter(
         auctionHouse.filters.AuctionCreated(
+          null,
           null,
           null,
           null,

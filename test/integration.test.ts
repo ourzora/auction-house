@@ -22,6 +22,7 @@ const ONE_DAY = 24 * 60 * 60;
 
 // helper function so we can parse numbers and do approximate number calculations, to avoid annoying gas calculations
 const smallify = (bn: BigNumber) => bn.div(THOUSANDTH_ETH).toNumber();
+const buyItNowPrice =  BigNumber.from(10).pow(18).mul(10)
 
 describe("integration", () => {
   let market: Market;
@@ -96,7 +97,8 @@ describe("integration", () => {
           TENTH_ETH,
           ethers.constants.AddressZero,
           0,
-          ethers.constants.AddressZero
+          ethers.constants.AddressZero,
+          buyItNowPrice
         );
       await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
       await auction.connect(bidderB).createBid(0, TWO_ETH, { value: TWO_ETH });
@@ -167,7 +169,8 @@ describe("integration", () => {
           TENTH_ETH,
           curatorAddress,
           20,
-          ethers.constants.AddressZero
+          ethers.constants.AddressZero,
+          buyItNowPrice
         );
       await auction.connect(curator).setAuctionApproval(0, true);
       await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
@@ -251,7 +254,8 @@ describe("integration", () => {
           TENTH_ETH,
           ethers.constants.AddressZero,
           20,
-          weth.address
+          weth.address,
+          buyItNowPrice
         );
       await weth.connect(bidderA).deposit({ value: ONE_ETH });
       await weth.connect(bidderA).approve(auction.address, ONE_ETH);
@@ -314,7 +318,8 @@ describe("integration", () => {
           TENTH_ETH,
           curator.address,
           20,
-          weth.address
+          weth.address,
+          buyItNowPrice
         );
       await auction.connect(curator).setAuctionApproval(0, true);
       await weth.connect(bidderA).deposit({ value: ONE_ETH });
@@ -387,7 +392,8 @@ describe("integration", () => {
           TENTH_ETH,
           curatorAddress,
           20,
-          ethers.constants.AddressZero
+          ethers.constants.AddressZero,
+          buyItNowPrice
         );
       await auction.connect(curator).setAuctionApproval(0, true);
       await auction.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH });
