@@ -130,9 +130,9 @@ interface IAuctionHouse {
 
     function setAuctionReservePrice(uint256 auctionId, uint256 reservePrice) external;
 
-    function updateCommissionAddress(address commissionAddress) external;
+    function updateCommissionAddress(uint256 auctionId, address commissionAddress) external;
 
-    function updateCommissionPercentage(address commissionAddress) external;
+    function updateCommissionPercentage(uint256 auctionId, address commissionAddress) external;
 
     function createBid(uint256 auctionId, uint256 amount) external payable;
 
