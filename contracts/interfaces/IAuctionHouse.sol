@@ -64,12 +64,12 @@ interface IAuctionHouse {
     event AuctionCommissionAddressUpdated(
         uint256 indexed auctionId,
         address indexed commissionAddress
-    )
+    );
 
     event AuctionCommissionAddressUpdated(
         uint256 indexed auctionId,
         address indexed commissionAddress
-    )
+    );
 
     event AuctionBid(
         uint256 indexed auctionId,

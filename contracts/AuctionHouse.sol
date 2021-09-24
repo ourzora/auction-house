@@ -266,7 +266,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
                 auctions[auctionId].bidder,
                 tokenOwnerProfit,
                 commissionAddress,
-                commissionAmount            
+                commissionAmount,            
                 currency
             );
 
