@@ -252,9 +252,9 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
         if (auctions[auctionId].commissionAddress != address(0) && auctions[auctionId].commissionPercentage > 0){
             uint256 commissionAmount = _generateCommission(auctionId);
-            uint256 tokenOwnerRemainingAmount = tokenOwnerProfit.sub(commissionAmount);
+            uint256 amountRemaining = tokenOwnerProfit.sub(commissionAmount);
 
-            _handleOutgoingBid(auctions[auctionId].tokenOwner, tokenOwnerProfit, auctions[auctionId].auctionCurrency);
+            _handleOutgoingBid(auctions[auctionId].tokenOwner, amountRemaining, auctions[auctionId].auctionCurrency);
 
             _handleOutgoingBid(auctions[auctionId].commissionAddress, commissionAmount, auctions[auctionId].auctionCurrency);
 
