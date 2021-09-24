@@ -97,7 +97,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             reservePrice: reservePrice,            
             tokenOwner: tokenOwner,
             bidder: address(0),            
-            auctionCurrency: auctionCurrency
+            auctionCurrency: auctionCurrency,
             commissionAddress: commissionAddress,
             commissionPercentage: comissionPercentage
         });
