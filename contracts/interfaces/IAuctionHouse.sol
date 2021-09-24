@@ -132,7 +132,7 @@ interface IAuctionHouse {
 
     function updateCommissionAddress(uint256 auctionId, address commissionAddress) external;
 
-    function updateCommissionPercentage(uint256 auctionId, address commissionAddress) external;
+    function updateCommissionPercentage(uint256 auctionId, uint256 commissionPercentage) external;
 
     function createBid(uint256 auctionId, uint256 amount) external payable;
 
