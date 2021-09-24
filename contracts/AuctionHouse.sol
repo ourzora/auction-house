@@ -120,7 +120,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionReservePriceUpdated(auctionId, auctions[auctionId].tokenId, auctions[auctionId].tokenContract, reservePrice);
     }
 
-    function updateCommissionAddress(uint256 auctionId, address commissionAddress) external auctionExists(auctionId) {
+    function updateCommissionAddress(uint256 auctionId, address commissionAddress) external override auctionExists(auctionId) {
         // TODO - access controls
         require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
 
@@ -129,7 +129,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionCommissionAddressUpdated(auctionId, commissionAddress);
     }
 
-    function updateCommissionPercentage(uint256 auctionId, uint256 commissionPercentage) external auctionExists(auctionId) {
+    function updateCommissionPercentage(uint256 auctionId, uint256 commissionPercentage) external override auctionExists(auctionId) {
         // TODO - access controls
         require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
 
