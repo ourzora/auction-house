@@ -76,7 +76,9 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address tokenContract,
         uint256 duration,
         uint256 reservePrice,                
-        address auctionCurrency
+        address auctionCurrency,
+        address commissionAddress,
+        uint8 commissionPercentage
     ) public override nonReentrant returns (uint256) {
         // TODO - Access controls
         require(
@@ -96,6 +98,8 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             tokenOwner: tokenOwner,
             bidder: address(0),            
             auctionCurrency: auctionCurrency
+            commissionAddress: commissionAddress,
+            commissionPercentage: comissionPercentage
         });
 
         IERC721(tokenContract).transferFrom(tokenOwner, address(this), tokenId);
@@ -114,6 +118,24 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         auctions[auctionId].reservePrice = reservePrice;
 
         emit AuctionReservePriceUpdated(auctionId, auctions[auctionId].tokenId, auctions[auctionId].tokenContract, reservePrice);
+    }
+
+    function updateCommissionAddress(uint256 auctionId, address commissionAddress) external auctionExists(auctionId) {
+        // TODO - access controls
+        require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
+
+        auctions[auctionId].commissionAddress = commissionAddress;
+
+        emit AuctionCommissionAddressUpdated(auctionId, commissionAddress);
+    }
+
+    function updateCommissionPercentage(uint256 auctionId, uint8 commissionPercentage) external auctionExists(auctionId) {
+        // TODO - access controls
+        require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
+
+        auctions[auctionId].commissionPercentage = commissionPercentage;
+
+        emit AuctionCommissionPercentageUpdated(auctionId, commissionPercentage);
     }
 
     /**
@@ -220,6 +242,11 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address currency = auctions[auctionId].auctionCurrency == address(0) ? wethAddress : auctions[auctionId].auctionCurrency;
 
         uint256 tokenOwnerProfit = auctions[auctionId].amount;
+        if (auctions[auctionId].commissionAddress != address(0) && auctions[auctionId].commissionPercentage > 0){
+            uint256 commissionAmount = _generateCommission(auctionId);
+            tokenOwnerProfit = tokenOwnerProfit.sub(commissionAmount);
+        }
+
  
         // Otherwise, transfer the token to the winner and pay out the participants below
         try IERC721(auctions[auctionId].tokenContract).safeTransferFrom(address(this), auctions[auctionId].bidder, auctions[auctionId].tokenId) {} catch {
@@ -289,6 +316,10 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         } else {
             IERC20(currency).safeTransfer(to, amount);
         }
+    }
+
+    function _generateCommission(uint256 auctionId) internal return (uint256){
+        return auctions[auctionId].amount.div(100).mul(auctions[auctionId].commissionPercentage);
     }
 
     function _safeTransferETH(address to, uint256 value) internal returns (bool) {

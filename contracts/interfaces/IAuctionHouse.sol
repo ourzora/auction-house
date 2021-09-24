@@ -27,6 +27,13 @@ interface IAuctionHouse {
         // The address of the ERC-20 currency to run the auction with.
         // If set to 0x0, the auction will be run in ETH
         address auctionCurrency;
+        // The address of recipient of the sale commission
+        address commissionAddress;
+        //The address of the recipient of the sale commission
+        //If set to 0x0, no commission will generated
+        uint256 commissionPercentage;
+        // The percentage of the sale the commission address receives
+        //If percentage is set to 0, no commission will be generated
     }
 
     event AuctionCreated(
@@ -36,7 +43,9 @@ interface IAuctionHouse {
         uint256 duration,
         uint256 reservePrice,
         address tokenOwner,        
-        address auctionCurrency
+        address auctionCurrency,
+        address commissionAddress,
+        uint8 commissionPercentage
     );
 
     event AuctionApprovalUpdated(
@@ -51,6 +60,16 @@ interface IAuctionHouse {
         address indexed tokenContract,
         uint256 reservePrice
     );
+
+    event AuctionCommissionAddressUpdated(
+        uint256 indexed auctionId
+        address indexed commissionAddress
+    )
+
+    event AuctionCommissionAddressUpdated(
+        uint256 indexed auctionId
+        address indexed commissionAddress
+    )
 
     event AuctionBid(
         uint256 indexed auctionId,
@@ -91,11 +110,17 @@ interface IAuctionHouse {
         address tokenContract,
         uint256 duration,
         uint256 reservePrice,        
-        address auctionCurrency
+        address auctionCurrency,
+        address commissionAddress,
+        uint8 comissionPercentage
     ) external returns (uint256);
 
 
     function setAuctionReservePrice(uint256 auctionId, uint256 reservePrice) external;
+
+    function updateCommissionAddress(address commissionAddress) external;
+
+    function updateCommissionPercentage(address commissionAddress) external;
 
     function createBid(uint256 auctionId, uint256 amount) external payable;
 
