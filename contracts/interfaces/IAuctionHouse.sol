@@ -98,6 +98,18 @@ interface IAuctionHouse {
         address auctionCurrency
     );
 
+    event AuctionEndedWithCommission(
+        uint256 indexed auctionId,
+        uint256 indexed tokenId,
+        address indexed tokenContract,
+        address tokenOwner,        
+        address winner,
+        uint256 amount,
+        address commissionAddress,
+        uint256 commissionAmount,        
+        address auctionCurrency
+    );
+
     event AuctionCanceled(
         uint256 indexed auctionId,
         uint256 indexed tokenId,

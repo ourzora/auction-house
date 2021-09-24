@@ -242,11 +242,6 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         address currency = auctions[auctionId].auctionCurrency == address(0) ? wethAddress : auctions[auctionId].auctionCurrency;
 
         uint256 tokenOwnerProfit = auctions[auctionId].amount;
-        if (auctions[auctionId].commissionAddress != address(0) && auctions[auctionId].commissionPercentage > 0){
-            uint256 commissionAmount = _generateCommission(auctionId);
-            tokenOwnerProfit = tokenOwnerProfit.sub(commissionAmount);
-        }
-
  
         // Otherwise, transfer the token to the winner and pay out the participants below
         try IERC721(auctions[auctionId].tokenContract).safeTransferFrom(address(this), auctions[auctionId].bidder, auctions[auctionId].tokenId) {} catch {
@@ -254,18 +249,42 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             _cancelAuction(auctionId);
             return;
         }
-        
-        _handleOutgoingBid(auctions[auctionId].tokenOwner, tokenOwnerProfit, auctions[auctionId].auctionCurrency);
 
-        emit AuctionEnded(
-            auctionId,
-            auctions[auctionId].tokenId,
-            auctions[auctionId].tokenContract,
-            auctions[auctionId].tokenOwner,            
-            auctions[auctionId].bidder,
-            tokenOwnerProfit,            
-            currency
-        );
+        if (auctions[auctionId].commissionAddress != address(0) && auctions[auctionId].commissionPercentage > 0){
+            uint256 commissionAmount = _generateCommission(auctionId);
+            tokenOwnerProfit = tokenOwnerProfit.sub(commissionAmount);
+
+            _handleOutgoingBid(auctions[auctionId].tokenOwner, tokenOwnerProfit, auctions[auctionId].auctionCurrency);
+
+            _handleOutGoingBid(auctions[auctionId].commissionAddress, commissionAmount, auctions[auctionId].auctionCurrency);
+
+            emit AuctionWithCommissionEnded(
+                auctionId,
+                auctions[auctionId].tokenId,
+                auctions[auctionId].tokenContract,
+                auctions[auctionId].tokenOwner,            
+                auctions[auctionId].bidder,
+                tokenOwnerProfit,
+                commissionAddress,
+                commissionAmount            
+                currency
+            );
+
+
+        } else {
+            _handleOutgoingBid(auctions[auctionId].tokenOwner, tokenOwnerProfit, auctions[auctionId].auctionCurrency);
+
+            emit AuctionEnded(
+                auctionId,
+                auctions[auctionId].tokenId,
+                auctions[auctionId].tokenContract,
+                auctions[auctionId].tokenOwner,            
+                auctions[auctionId].bidder,
+                tokenOwnerProfit,            
+                currency
+            );
+        }
+        
         delete auctions[auctionId];
     }
 
