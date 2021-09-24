@@ -337,7 +337,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         }
     }
 
-    function _generateCommission(uint256 auctionId) internal return (uint256){
+    function _generateCommission(uint256 auctionId) internal {
         return auctions[auctionId].amount.div(100).mul(auctions[auctionId].commissionPercentage);
     }
 
