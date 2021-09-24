@@ -129,7 +129,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionCommissionAddressUpdated(auctionId, commissionAddress);
     }
 
-    function updateCommissionPercentage(uint256 auctionId, uint8 commissionPercentage) external auctionExists(auctionId) {
+    function updateCommissionPercentage(uint256 auctionId, uint256 commissionPercentage) external auctionExists(auctionId) {
         // TODO - access controls
         require(auctions[auctionId].firstBidTime == 0, "Auction has already started");
 
