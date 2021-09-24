@@ -106,7 +106,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
         _auctionIdTracker.increment();
 
-        emit AuctionCreated(auctionId, tokenId, tokenContract, duration, reservePrice, tokenOwner, auctionCurrency);
+        emit AuctionCreated(auctionId, tokenId, tokenContract, duration, reservePrice, tokenOwner, auctionCurrency, commissionAddress, commissionPercentage);
  
         return auctionId;
     }
