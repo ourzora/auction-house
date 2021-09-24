@@ -99,7 +99,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             bidder: address(0),            
             auctionCurrency: auctionCurrency,
             commissionAddress: commissionAddress,
-            commissionPercentage: comissionPercentage
+            commissionPercentage: commissionPercentage
         });
 
         IERC721(tokenContract).transferFrom(tokenOwner, address(this), tokenId);
