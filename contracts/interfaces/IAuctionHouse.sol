@@ -98,7 +98,7 @@ interface IAuctionHouse {
         address auctionCurrency
     );
 
-    event AuctionEndedWithCommission(
+    event AuctionWithCommissionEnded(
         uint256 indexed auctionId,
         uint256 indexed tokenId,
         address indexed tokenContract,
