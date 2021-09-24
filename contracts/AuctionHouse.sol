@@ -256,7 +256,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
             _handleOutgoingBid(auctions[auctionId].tokenOwner, tokenOwnerProfit, auctions[auctionId].auctionCurrency);
 
-            _handleOutGoingBid(auctions[auctionId].commissionAddress, commissionAmount, auctions[auctionId].auctionCurrency);
+            _handleOutgoingBid(auctions[auctionId].commissionAddress, commissionAmount, auctions[auctionId].auctionCurrency);
 
             emit AuctionWithCommissionEnded(
                 auctionId,
