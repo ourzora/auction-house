@@ -75,10 +75,6 @@ describe("AuctionHouse", () => {
         weth.address
       );
 
-      expect(await auctionHouse.zora()).to.eq(
-        media.address,
-        "incorrect zora address"
-      );
       expect(formatUnits(await auctionHouse.timeBuffer(), 0)).to.eq(
         "900"
       );
@@ -421,14 +417,6 @@ describe("AuctionHouse", () => {
     it("should revert if the bid is less than the reserve price", async () => {
       await expect(
         auctionHouse.createBid(0, 0, { value: 0 })
-      ).eventually.rejected;
-    });
-
-    it("should revert if the bid is invalid for share splitting", async () => {
-      await expect(
-        auctionHouse.createBid(0, ONE_ETH.add(1), {
-          value: ONE_ETH.add(1),
-        })
       ).eventually.rejected;
     });
 

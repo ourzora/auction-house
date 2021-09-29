@@ -70,9 +70,9 @@ interface IAuctionHouse {
 
     event AuctionBid(
         uint256 indexed auctionId,
-        uint256 indexed tokenId,
+        address indexed sender,
         address indexed tokenContract,
-        address sender,
+        uint256 tokenId,
         uint256 value,
         bool firstBid,
         bool extended
