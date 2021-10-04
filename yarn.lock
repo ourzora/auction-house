@@ -1024,10 +1024,10 @@
   resolved "https://registry.yarnpkg.com/@yarnpkg/lockfile/-/lockfile-1.1.0.tgz#e77a97fbd345b76d83245edcd17d393b1b41fb31"
   integrity sha512-GpSwvyXOcOOlV70vbnzjj4fW5xW/FdUF6nQEt1ENy7m4ZCczi1+/buVUPAqmGfqznsORNFzUMjctTIp8a9tuCQ==
 
-"@zoralabs/core@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@zoralabs/core/-/core-1.0.3.tgz#a4ca994510a0fa4e3de82639c682fb1124bef35b"
-  integrity sha512-yLCbZMmjf59R2/BtUQiIxytHYKZRtGFhHLGwnN26FdAW8kN9lTmuZ41ijMujA14z0RT+xHpTa4L6DvfACc+Aag==
+"@zoralabs/core@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@zoralabs/core/-/core-1.0.7.tgz#c426b5d85cf1cb0c57d7e9dc0a3fd8519c78566d"
+  integrity sha512-BZ6/n/2YIOAXWU+VtxNo+O/1wy9mFb7Grfdg2EkJoaq/2UJjf7cpMZfdQHp2CRa+m3XYb1uVG3q6236i+Uz1MQ==
   dependencies:
     ethers "^5.0.19"
 
