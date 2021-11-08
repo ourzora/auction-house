@@ -3,7 +3,13 @@ import asPromised from "chai-as-promised";
 // @ts-ignore
 import { ethers } from "hardhat";
 import { Market, Media } from "@zoralabs/core/dist/typechain";
-import { AuctionHouse, BadBidder, TestERC721, BadERC721 } from "../typechain";
+import {
+  RestrictedAuctionHouse,
+  BadBidder,
+  TestERC721,
+  BadERC721,
+  TestAccessControl,
+} from "../typechain";
 import { formatUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, Signer } from "ethers";
 import {
@@ -12,6 +18,7 @@ import {
   deployOtherNFTs,
   deployWETH,
   deployZoraProtocol,
+  deployAccessControl,
   mint,
   ONE_ETH,
   revert,
@@ -20,12 +27,13 @@ import {
 
 chai.use(asPromised);
 
-describe("AuctionHouse", () => {
+describe("RestrictedAuctionHouse", () => {
   let market: Market;
   let media: Media;
   let weth: Contract;
   let badERC721: BadERC721;
   let testERC721: TestERC721;
+  let accessControl: TestAccessControl;
 
   beforeEach(async () => {
     await ethers.provider.send("hardhat_reset", []);
@@ -36,17 +44,18 @@ describe("AuctionHouse", () => {
     weth = await deployWETH();
     badERC721 = nfts.bad;
     testERC721 = nfts.test;
+    accessControl = await deployAccessControl();
   });
 
-  async function deploy(): Promise<AuctionHouse> {
-    const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
-    const auctionHouse = await AuctionHouse.deploy(media.address, weth.address);
+  async function deploy(): Promise<RestrictedAuctionHouse> {
+    const RestrictedAuctionHouse = await ethers.getContractFactory("RestrictedAuctionHouse");
+    const auctionHouse = await RestrictedAuctionHouse.deploy(media.address, weth.address);
 
-    return auctionHouse as AuctionHouse;
+    return auctionHouse as RestrictedAuctionHouse;
   }
 
   async function createAuction(
-    auctionHouse: AuctionHouse,
+    auctionHouse: RestrictedAuctionHouse,
     curator: string,
     currency = "0x0000000000000000000000000000000000000000"
   ) {
@@ -65,10 +74,32 @@ describe("AuctionHouse", () => {
     );
   }
 
+  async function createRestrictedAuction(
+    accessControlAddress: string,
+    auctionHouse: RestrictedAuctionHouse,
+    curator: string,
+    currency = "0x0000000000000000000000000000000000000000",
+  ) {
+    const tokenId = 0;
+    const duration = 60 * 60 * 24;
+    const reservePrice = BigNumber.from(10).pow(18).div(2);
+
+    await auctionHouse.createRestrictedAuction(
+      tokenId,
+      media.address,
+      duration,
+      reservePrice,
+      curator,
+      5,
+      currency,
+      accessControlAddress
+    );
+  }
+
   describe("#constructor", () => {
     it("should be able to deploy", async () => {
-      const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
-      const auctionHouse = await AuctionHouse.deploy(
+      const RestrictedAuctionHouse = await ethers.getContractFactory("RestrictedAuctionHouse");
+      const auctionHouse = await RestrictedAuctionHouse.deploy(
         media.address,
         weth.address
       );
@@ -88,15 +119,15 @@ describe("AuctionHouse", () => {
     });
 
     it("should not allow a configuration address that is not the Zora Media Protocol", async () => {
-      const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
+      const RestrictedAuctionHouse = await ethers.getContractFactory("RestrictedAuctionHouse");
       await expect(
-        AuctionHouse.deploy(market.address, weth.address)
+        RestrictedAuctionHouse.deploy(market.address, weth.address)
       ).eventually.rejectedWith("Transaction reverted without a reason");
     });
   });
 
   describe("#createAuction", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     beforeEach(async () => {
       auctionHouse = await deploy();
       await mint(media);
@@ -260,21 +291,225 @@ describe("AuctionHouse", () => {
     });
   });
 
+  describe("#createRestrictedAuction", () => {
+    let auctionHouse: RestrictedAuctionHouse;
+    beforeEach(async () => {
+      auctionHouse = await deploy();
+      await mint(media);
+      await approveAuction(media, auctionHouse);
+    });
+
+    it("should revert if the token contract does not support the ERC721 interface", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const [_, curator] = await ethers.getSigners();
+
+      await expect(
+        auctionHouse.createRestrictedAuction(
+          0,
+          badERC721.address,
+          duration,
+          reservePrice,
+          curator.address,
+          5,
+          "0x0000000000000000000000000000000000000000",
+          accessControl.address
+        )
+      ).eventually.rejectedWith(
+        revert`tokenContract does not support ERC721 interface`
+      );
+    });
+
+    it("should revert if the access control contract does not support the AccessControl interface", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const [_, curator] = await ethers.getSigners();
+
+      await expect(
+        auctionHouse.createRestrictedAuction(
+          0,
+          media.address,
+          duration,
+          reservePrice,
+          curator.address,
+          5,
+          "0x0000000000000000000000000000000000000000",
+          media.address
+        )
+      ).eventually.rejectedWith(
+        revert`accessControlContract does not support AccessControl interface`
+      );
+    });
+
+    it("should revert if the caller is not approved", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const [_, curator, __, ___, unapproved] = await ethers.getSigners();
+      await expect(
+        auctionHouse
+          .connect(unapproved)
+          .createRestrictedAuction(
+            0,
+            media.address,
+            duration,
+            reservePrice,
+            curator.address,
+            5,
+            "0x0000000000000000000000000000000000000000",
+            accessControl.address
+          )
+      ).eventually.rejectedWith(
+        revert`Caller must be approved or owner for token id`
+      );
+    });
+
+    it("should revert if the token ID does not exist", async () => {
+      const tokenId = 999;
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const owner = await media.ownerOf(0);
+      const [admin, curator] = await ethers.getSigners();
+
+      await expect(
+        auctionHouse
+          .connect(admin)
+          .createRestrictedAuction(
+            tokenId,
+            media.address,
+            duration,
+            reservePrice,
+            curator.address,
+            5,
+            "0x0000000000000000000000000000000000000000",
+            accessControl.address
+          )
+      ).eventually.rejectedWith(
+        revert`ERC721: owner query for nonexistent token`
+      );
+    });
+
+    it("should revert if the curator fee percentage is >= 100", async () => {
+      const duration = 60 * 60 * 24;
+      const reservePrice = BigNumber.from(10).pow(18).div(2);
+      const owner = await media.ownerOf(0);
+      const [_, curator] = await ethers.getSigners();
+
+      await expect(
+        auctionHouse.createRestrictedAuction(
+          0,
+          media.address,
+          duration,
+          reservePrice,
+          curator.address,
+          100,
+          "0x0000000000000000000000000000000000000000",
+          accessControl.address
+        )
+      ).eventually.rejectedWith(
+        revert`curatorFeePercentage must be less than 100`
+      );
+    });
+
+    it("should create an auction", async () => {
+      const owner = await media.ownerOf(0);
+      const [_, expectedCurator] = await ethers.getSigners();
+      await createRestrictedAuction(
+        accessControl.address,
+        auctionHouse,
+        await expectedCurator.getAddress()
+      );
+
+      const createdAuction = await auctionHouse.auctions(0);
+
+      expect(createdAuction.duration).to.eq(24 * 60 * 60);
+      expect(createdAuction.reservePrice).to.eq(
+        BigNumber.from(10).pow(18).div(2)
+      );
+      expect(createdAuction.curatorFeePercentage).to.eq(5);
+      expect(createdAuction.tokenOwner).to.eq(owner);
+      expect(createdAuction.curator).to.eq(expectedCurator.address);
+      expect(createdAuction.approved).to.eq(false);
+    });
+
+    it("should be automatically approved if the creator is the curator", async () => {
+      const owner = await media.ownerOf(0);
+      await createRestrictedAuction(accessControl.address, auctionHouse, owner);
+
+      const createdAuction = await auctionHouse.auctions(0);
+
+      expect(createdAuction.approved).to.eq(true);
+    });
+
+    it("should be automatically approved if the creator is the Zero Address", async () => {
+      await createRestrictedAuction(
+        accessControl.address,
+        auctionHouse,
+        ethers.constants.AddressZero
+      );
+
+      const createdAuction = await auctionHouse.auctions(0);
+
+      expect(createdAuction.approved).to.eq(true);
+    });
+
+    it("should emit an AuctionCreated event", async () => {
+      const owner = await media.ownerOf(0);
+      const [_, expectedCurator] = await ethers.getSigners();
+
+      const block = await ethers.provider.getBlockNumber();
+      await createRestrictedAuction(
+        accessControl.address,
+        auctionHouse,
+        await expectedCurator.getAddress()
+      );
+      const currAuction = await auctionHouse.auctions(0);
+      const events = await auctionHouse.queryFilter(
+        auctionHouse.filters.AuctionCreated(
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ),
+        block
+      );
+      expect(events.length).eq(1);
+      const logDescription = auctionHouse.interface.parseLog(events[0]);
+      expect(logDescription.name).to.eq("AuctionCreated");
+      expect(logDescription.args.duration).to.eq(currAuction.duration);
+      expect(logDescription.args.reservePrice).to.eq(currAuction.reservePrice);
+      expect(logDescription.args.tokenOwner).to.eq(currAuction.tokenOwner);
+      expect(logDescription.args.curator).to.eq(currAuction.curator);
+      expect(logDescription.args.curatorFeePercentage).to.eq(
+        currAuction.curatorFeePercentage
+      );
+      expect(logDescription.args.auctionCurrency).to.eq(
+        ethers.constants.AddressZero
+      );
+    });
+  });
+
   describe("#setAuctionApproval", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     let admin: Signer;
     let curator: Signer;
     let bidder: Signer;
 
     beforeEach(async () => {
       [admin, curator, bidder] = await ethers.getSigners();
-      auctionHouse = (await deploy()).connect(curator) as AuctionHouse;
+      auctionHouse = (await deploy()).connect(curator) as RestrictedAuctionHouse;
       await mint(media);
       await approveAuction(media, auctionHouse);
-      await createAuction(
+      await createRestrictedAuction(
+        accessControl.address,
         auctionHouse.connect(admin),
         await curator.getAddress()
       );
+      await accessControl.addBidder(await bidder.getAddress());
     });
 
     it("should revert if the auctionHouse does not exist", async () => {
@@ -320,7 +555,7 @@ describe("AuctionHouse", () => {
   });
 
   describe("#setAuctionReservePrice", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     let admin: Signer;
     let creator: Signer;
     let curator: Signer;
@@ -328,16 +563,18 @@ describe("AuctionHouse", () => {
 
     beforeEach(async () => {
       [admin, creator, curator, bidder] = await ethers.getSigners();
-      auctionHouse = (await deploy()).connect(curator) as AuctionHouse;
+      auctionHouse = (await deploy()).connect(curator) as RestrictedAuctionHouse;
       await mint(media.connect(creator));
       await approveAuction(
         media.connect(creator),
         auctionHouse.connect(creator)
       );
-      await createAuction(
+      await createRestrictedAuction(
+        accessControl.address,
         auctionHouse.connect(creator),
         await curator.getAddress()
       );
+      await accessControl.addBidder(await bidder.getAddress());
     });
 
     it("should revert if the auctionHouse does not exist", async () => {
@@ -390,245 +627,232 @@ describe("AuctionHouse", () => {
   });
 
   describe("#createBid", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     let admin: Signer;
     let curator: Signer;
     let bidderA: Signer;
     let bidderB: Signer;
 
-    beforeEach(async () => {
-      [admin, curator, bidderA, bidderB] = await ethers.getSigners();
-      auctionHouse = (await (await deploy()).connect(bidderA)) as AuctionHouse;
-      await mint(media);
-      await approveAuction(media, auctionHouse);
-      await createAuction(
-        auctionHouse.connect(admin),
-        await curator.getAddress()
-      );
-      await auctionHouse.connect(curator).setAuctionApproval(0, true);
-    });
-
-    it("should revert if the specified auction does not exist", async () => {
-      await expect(
-        auctionHouse.createBid(11111, ONE_ETH)
-      ).eventually.rejectedWith(revert`Auction doesn't exist`);
-    });
-
-    it("should revert if the specified auction is not approved", async () => {
-      await auctionHouse.connect(curator).setAuctionApproval(0, false);
-      await expect(
-        auctionHouse.createBid(0, ONE_ETH, { value: ONE_ETH })
-      ).eventually.rejectedWith(revert`Auction must be approved by curator`);
-    });
-
-    it("should revert if the bid is less than the reserve price", async () => {
-      await expect(
-        auctionHouse.createBid(0, 0, { value: 0 })
-      ).eventually.rejectedWith(revert`Must send at least reservePrice`);
-    });
-
-    it("should revert if the bid is invalid for share splitting", async () => {
-      await expect(
-        auctionHouse.createBid(0, ONE_ETH.add(1), {
-          value: ONE_ETH.add(1),
-        })
-      ).eventually.rejectedWith(revert`Bid invalid for share splitting`);
-    });
-
-    it("should revert if msg.value does not equal specified amount", async () => {
-      await expect(
-        auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH.mul(2),
-        })
-      ).eventually.rejectedWith(
-        revert`Sent ETH Value does not match specified bid amount`
-      );
-    });
-    describe("first bid", () => {
-      it("should set the first bid time", async () => {
-        // TODO: Fix this test on Sun Oct 04 2274
-        await ethers.provider.send("evm_setNextBlockTimestamp", [9617249934]);
-        await auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH,
-        });
-        expect((await auctionHouse.auctions(0)).firstBidTime).to.eq(9617249934);
-      });
-
-      it("should store the transferred ETH as WETH", async () => {
-        await auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH,
-        });
-        expect(await weth.balanceOf(auctionHouse.address)).to.eq(ONE_ETH);
-      });
-
-      it("should not update the auction's duration", async () => {
-        const beforeDuration = (await auctionHouse.auctions(0)).duration;
-        await auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH,
-        });
-        const afterDuration = (await auctionHouse.auctions(0)).duration;
-
-        expect(beforeDuration).to.eq(afterDuration);
-      });
-
-      it("should store the bidder's information", async () => {
-        await auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH,
-        });
-        const currAuction = await auctionHouse.auctions(0);
-
-        expect(currAuction.bidder).to.eq(await bidderA.getAddress());
-        expect(currAuction.amount).to.eq(ONE_ETH);
-      });
-
-      it("should emit an AuctionBid event", async () => {
-        const block = await ethers.provider.getBlockNumber();
-        await auctionHouse.createBid(0, ONE_ETH, {
-          value: ONE_ETH,
-        });
-        const events = await auctionHouse.queryFilter(
-          auctionHouse.filters.AuctionBid(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-          ),
-          block
-        );
-        expect(events.length).eq(1);
-        const logDescription = auctionHouse.interface.parseLog(events[0]);
-
-        expect(logDescription.name).to.eq("AuctionBid");
-        expect(logDescription.args.auctionId).to.eq(0);
-        expect(logDescription.args.sender).to.eq(await bidderA.getAddress());
-        expect(logDescription.args.value).to.eq(ONE_ETH);
-        expect(logDescription.args.firstBid).to.eq(true);
-        expect(logDescription.args.extended).to.eq(false);
-      });
-    });
-
-    describe("second bid", () => {
+    describe("restricted auction", () => {
+      let notBidder: Signer;
       beforeEach(async () => {
-        auctionHouse = auctionHouse.connect(bidderB) as AuctionHouse;
-        await auctionHouse
-          .connect(bidderA)
-          .createBid(0, ONE_ETH, { value: ONE_ETH });
+        [admin, curator, notBidder, bidderA, bidderB] = await ethers.getSigners();
+        auctionHouse = (await (await deploy()).connect(bidderA)) as RestrictedAuctionHouse;
+        await mint(media);
+        await approveAuction(media, auctionHouse);
+        await createRestrictedAuction(
+          accessControl.address,
+          auctionHouse.connect(admin),
+          await curator.getAddress()
+        );
+        await accessControl.addBidder(await bidderA.getAddress());
+        await accessControl.addBidder(await bidderB.getAddress());
+        await auctionHouse.connect(curator).setAuctionApproval(0, true);
       });
-
-      it("should revert if the bid is smaller than the last bid + minBid", async () => {
+      createBidTests();
+      it("should revert if the creator does not have the BIDDER role", async () => {
         await expect(
-          auctionHouse.createBid(0, ONE_ETH.add(1), {
-            value: ONE_ETH.add(1),
+          auctionHouse.connect(notBidder).createBid(0, ONE_ETH, {
+            value: ONE_ETH,
           })
         ).eventually.rejectedWith(
-          revert`Must send more than last bid by minBidIncrementPercentage amount`
+          revert`Must have BIDDER role`
+        );
+      });
+    });
+
+    describe("public auction", () => {
+      beforeEach(async () => {
+        [admin, curator, bidderA, bidderB] = await ethers.getSigners();
+        auctionHouse = (await (await deploy()).connect(bidderA)) as RestrictedAuctionHouse;
+        await mint(media);
+        await approveAuction(media, auctionHouse);
+        await createAuction(
+          auctionHouse.connect(admin),
+          await curator.getAddress()
+        );
+        await accessControl.addBidder(await bidderA.getAddress());
+        await accessControl.addBidder(await bidderB.getAddress());
+        await auctionHouse.connect(curator).setAuctionApproval(0, true);
+      });
+      createBidTests();
+    });
+
+    function createBidTests(){
+      it("should revert if the specified auction does not exist", async () => {
+        await expect(
+          auctionHouse.connect(bidderA).createBid(11111, ONE_ETH)
+        ).eventually.rejectedWith(revert`Auction doesn't exist`);
+      });
+
+      it("should revert if the specified auction is not approved", async () => {
+        await auctionHouse.connect(curator).setAuctionApproval(0, false);
+        await expect(
+          auctionHouse.connect(bidderA).createBid(0, ONE_ETH, { value: ONE_ETH })
+        ).eventually.rejectedWith(revert`Auction must be approved by curator`);
+      });
+
+      it("should revert if the bid is less than the reserve price", async () => {
+        await expect(
+          auctionHouse.connect(bidderA).createBid(0, 0, { value: 0 })
+        ).eventually.rejectedWith(revert`Must send at least reservePrice`);
+      });
+
+      it("should revert if the bid is invalid for share splitting", async () => {
+        await expect(
+          auctionHouse.connect(bidderA).createBid(0, ONE_ETH.add(1), {
+            value: ONE_ETH.add(1),
+          })
+        ).eventually.rejectedWith(revert`Bid invalid for share splitting`);
+      });
+
+      it("should revert if msg.value does not equal specified amount", async () => {
+        await expect(
+          auctionHouse.connect(bidderA).createBid(0, ONE_ETH, {
+            value: ONE_ETH.mul(2),
+          })
+        ).eventually.rejectedWith(
+          revert`Sent ETH Value does not match specified bid amount`
         );
       });
 
-      it("should refund the previous bid", async () => {
-        const beforeBalance = await ethers.provider.getBalance(
-          await bidderA.getAddress()
-        );
-        const beforeBidAmount = (await auctionHouse.auctions(0)).amount;
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
-        });
-        const afterBalance = await ethers.provider.getBalance(
-          await bidderA.getAddress()
-        );
-
-        expect(afterBalance).to.eq(beforeBalance.add(beforeBidAmount));
-      });
-
-      it("should not update the firstBidTime", async () => {
-        const firstBidTime = (await auctionHouse.auctions(0)).firstBidTime;
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
-        });
-        expect((await auctionHouse.auctions(0)).firstBidTime).to.eq(
-          firstBidTime
-        );
-      });
-
-      it("should transfer the bid to the contract and store it as WETH", async () => {
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
+      describe("first bid", () => {
+        it("should set the first bid time", async () => {
+          // TODO: Fix this test on Sun Oct 04 2274
+          await ethers.provider.send("evm_setNextBlockTimestamp", [9617249934]);
+          await auctionHouse.createBid(0, ONE_ETH, {
+            value: ONE_ETH,
+          });
+          expect((await auctionHouse.auctions(0)).firstBidTime).to.eq(9617249934);
         });
 
-        expect(await weth.balanceOf(auctionHouse.address)).to.eq(TWO_ETH);
-      });
-
-      it("should update the stored bid information", async () => {
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
+        it("should store the transferred ETH as WETH", async () => {
+          await auctionHouse.createBid(0, ONE_ETH, {
+            value: ONE_ETH,
+          });
+          expect(await weth.balanceOf(auctionHouse.address)).to.eq(ONE_ETH);
         });
 
-        const currAuction = await auctionHouse.auctions(0);
-
-        expect(currAuction.amount).to.eq(TWO_ETH);
-        expect(currAuction.bidder).to.eq(await bidderB.getAddress());
-      });
-
-      it("should not extend the duration of the bid if outside of the time buffer", async () => {
-        const beforeDuration = (await auctionHouse.auctions(0)).duration;
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
-        });
-        const afterDuration = (await auctionHouse.auctions(0)).duration;
-        expect(beforeDuration).to.eq(afterDuration);
-      });
-
-      it("should emit an AuctionBid event", async () => {
-        const block = await ethers.provider.getBlockNumber();
-        await auctionHouse.createBid(0, TWO_ETH, {
-          value: TWO_ETH,
-        });
-        const events = await auctionHouse.queryFilter(
-          auctionHouse.filters.AuctionBid(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-          ),
-          block
-        );
-        expect(events.length).eq(2);
-        const logDescription = auctionHouse.interface.parseLog(events[1]);
-
-        expect(logDescription.name).to.eq("AuctionBid");
-        expect(logDescription.args.sender).to.eq(await bidderB.getAddress());
-        expect(logDescription.args.value).to.eq(TWO_ETH);
-        expect(logDescription.args.firstBid).to.eq(false);
-        expect(logDescription.args.extended).to.eq(false);
-      });
-
-      describe("last minute bid", () => {
-        beforeEach(async () => {
-          const currAuction = await auctionHouse.auctions(0);
-          await ethers.provider.send("evm_setNextBlockTimestamp", [
-            currAuction.firstBidTime
-              .add(currAuction.duration)
-              .sub(1)
-              .toNumber(),
-          ]);
-        });
-        it("should extend the duration of the bid if inside of the time buffer", async () => {
+        it("should not update the auction's duration", async () => {
           const beforeDuration = (await auctionHouse.auctions(0)).duration;
+          await auctionHouse.createBid(0, ONE_ETH, {
+            value: ONE_ETH,
+          });
+          const afterDuration = (await auctionHouse.auctions(0)).duration;
+
+          expect(beforeDuration).to.eq(afterDuration);
+        });
+
+        it("should store the bidder's information", async () => {
+          await auctionHouse.createBid(0, ONE_ETH, {
+            value: ONE_ETH,
+          });
+          const currAuction = await auctionHouse.auctions(0);
+
+          expect(currAuction.bidder).to.eq(await bidderA.getAddress());
+          expect(currAuction.amount).to.eq(ONE_ETH);
+        });
+
+        it("should emit an AuctionBid event", async () => {
+          const block = await ethers.provider.getBlockNumber();
+          await auctionHouse.createBid(0, ONE_ETH, {
+            value: ONE_ETH,
+          });
+          const events = await auctionHouse.queryFilter(
+            auctionHouse.filters.AuctionBid(
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ),
+            block
+          );
+          expect(events.length).eq(1);
+          const logDescription = auctionHouse.interface.parseLog(events[0]);
+
+          expect(logDescription.name).to.eq("AuctionBid");
+          expect(logDescription.args.auctionId).to.eq(0);
+          expect(logDescription.args.sender).to.eq(await bidderA.getAddress());
+          expect(logDescription.args.value).to.eq(ONE_ETH);
+          expect(logDescription.args.firstBid).to.eq(true);
+          expect(logDescription.args.extended).to.eq(false);
+        });
+      });
+
+      describe("second bid", () => {
+        beforeEach(async () => {
+          auctionHouse = auctionHouse.connect(bidderB) as RestrictedAuctionHouse;
+          await auctionHouse
+            .connect(bidderA)
+            .createBid(0, ONE_ETH, { value: ONE_ETH });
+        });
+
+        it("should revert if the bid is smaller than the last bid + minBid", async () => {
+          await expect(
+            auctionHouse.createBid(0, ONE_ETH.add(1), {
+              value: ONE_ETH.add(1),
+            })
+          ).eventually.rejectedWith(
+            revert`Must send more than last bid by minBidIncrementPercentage amount`
+          );
+        });
+
+        it("should refund the previous bid", async () => {
+          const beforeBalance = await ethers.provider.getBalance(
+            await bidderA.getAddress()
+          );
+          const beforeBidAmount = (await auctionHouse.auctions(0)).amount;
+          await auctionHouse.createBid(0, TWO_ETH, {
+            value: TWO_ETH,
+          });
+          const afterBalance = await ethers.provider.getBalance(
+            await bidderA.getAddress()
+          );
+
+          expect(afterBalance).to.eq(beforeBalance.add(beforeBidAmount));
+        });
+
+        it("should not update the firstBidTime", async () => {
+          const firstBidTime = (await auctionHouse.auctions(0)).firstBidTime;
+          await auctionHouse.createBid(0, TWO_ETH, {
+            value: TWO_ETH,
+          });
+          expect((await auctionHouse.auctions(0)).firstBidTime).to.eq(
+            firstBidTime
+          );
+        });
+
+        it("should transfer the bid to the contract and store it as WETH", async () => {
+          await auctionHouse.createBid(0, TWO_ETH, {
+            value: TWO_ETH,
+          });
+
+          expect(await weth.balanceOf(auctionHouse.address)).to.eq(TWO_ETH);
+        });
+
+        it("should update the stored bid information", async () => {
           await auctionHouse.createBid(0, TWO_ETH, {
             value: TWO_ETH,
           });
 
           const currAuction = await auctionHouse.auctions(0);
-          expect(currAuction.duration).to.eq(
-            beforeDuration.add(await auctionHouse.timeBuffer()).sub(1)
-          );
+
+          expect(currAuction.amount).to.eq(TWO_ETH);
+          expect(currAuction.bidder).to.eq(await bidderB.getAddress());
         });
+
+        it("should not extend the duration of the bid if outside of the time buffer", async () => {
+          const beforeDuration = (await auctionHouse.auctions(0)).duration;
+          await auctionHouse.createBid(0, TWO_ETH, {
+            value: TWO_ETH,
+          });
+          const afterDuration = (await auctionHouse.auctions(0)).duration;
+          expect(beforeDuration).to.eq(afterDuration);
+        });
+
         it("should emit an AuctionBid event", async () => {
           const block = await ethers.provider.getBlockNumber();
           await auctionHouse.createBid(0, TWO_ETH, {
@@ -653,33 +877,83 @@ describe("AuctionHouse", () => {
           expect(logDescription.args.sender).to.eq(await bidderB.getAddress());
           expect(logDescription.args.value).to.eq(TWO_ETH);
           expect(logDescription.args.firstBid).to.eq(false);
-          expect(logDescription.args.extended).to.eq(true);
-        });
-      });
-      describe("late bid", () => {
-        beforeEach(async () => {
-          const currAuction = await auctionHouse.auctions(0);
-          await ethers.provider.send("evm_setNextBlockTimestamp", [
-            currAuction.firstBidTime
-              .add(currAuction.duration)
-              .add(1)
-              .toNumber(),
-          ]);
+          expect(logDescription.args.extended).to.eq(false);
         });
 
-        it("should revert if the bid is placed after expiry", async () => {
-          await expect(
-            auctionHouse.createBid(0, TWO_ETH, {
+        describe("last minute bid", () => {
+          beforeEach(async () => {
+            const currAuction = await auctionHouse.auctions(0);
+            await ethers.provider.send("evm_setNextBlockTimestamp", [
+              currAuction.firstBidTime
+                .add(currAuction.duration)
+                .sub(1)
+                .toNumber(),
+            ]);
+          });
+          it("should extend the duration of the bid if inside of the time buffer", async () => {
+            const beforeDuration = (await auctionHouse.auctions(0)).duration;
+            await auctionHouse.createBid(0, TWO_ETH, {
               value: TWO_ETH,
-            })
-          ).eventually.rejectedWith(revert`Auction expired`);
+            });
+
+            const currAuction = await auctionHouse.auctions(0);
+            expect(currAuction.duration).to.eq(
+              beforeDuration.add(await auctionHouse.timeBuffer()).sub(1)
+            );
+          });
+          it("should emit an AuctionBid event", async () => {
+            const block = await ethers.provider.getBlockNumber();
+            await auctionHouse.createBid(0, TWO_ETH, {
+              value: TWO_ETH,
+            });
+            const events = await auctionHouse.queryFilter(
+              auctionHouse.filters.AuctionBid(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+              ),
+              block
+            );
+            expect(events.length).eq(2);
+            const logDescription = auctionHouse.interface.parseLog(events[1]);
+
+            expect(logDescription.name).to.eq("AuctionBid");
+            expect(logDescription.args.sender).to.eq(await bidderB.getAddress());
+            expect(logDescription.args.value).to.eq(TWO_ETH);
+            expect(logDescription.args.firstBid).to.eq(false);
+            expect(logDescription.args.extended).to.eq(true);
+          });
+        });
+        describe("late bid", () => {
+          beforeEach(async () => {
+            const currAuction = await auctionHouse.auctions(0);
+            await ethers.provider.send("evm_setNextBlockTimestamp", [
+              currAuction.firstBidTime
+                .add(currAuction.duration)
+                .add(1)
+                .toNumber(),
+            ]);
+          });
+
+          it("should revert if the bid is placed after expiry", async () => {
+            await expect(
+              auctionHouse.createBid(0, TWO_ETH, {
+                value: TWO_ETH,
+              })
+            ).eventually.rejectedWith(revert`Auction expired`);
+          });
         });
       });
-    });
+    };
+
   });
 
   describe("#cancelAuction", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     let admin: Signer;
     let creator: Signer;
     let curator: Signer;
@@ -687,14 +961,16 @@ describe("AuctionHouse", () => {
 
     beforeEach(async () => {
       [admin, creator, curator, bidder] = await ethers.getSigners();
-      auctionHouse = (await deploy()).connect(creator) as AuctionHouse;
+      auctionHouse = (await deploy()).connect(creator) as RestrictedAuctionHouse;
       await mint(media.connect(creator));
       await approveAuction(media.connect(creator), auctionHouse);
-      await createAuction(
+      await createRestrictedAuction(
+        accessControl.address,
         auctionHouse.connect(creator),
         await curator.getAddress()
       );
       await auctionHouse.connect(curator).setAuctionApproval(0, true);
+      await accessControl.addBidder(await bidder.getAddress());
     });
 
     it("should revert if the auction does not exist", async () => {
@@ -772,7 +1048,7 @@ describe("AuctionHouse", () => {
   });
 
   describe("#endAuction", () => {
-    let auctionHouse: AuctionHouse;
+    let auctionHouse: RestrictedAuctionHouse;
     let admin: Signer;
     let creator: Signer;
     let curator: Signer;
@@ -782,15 +1058,18 @@ describe("AuctionHouse", () => {
 
     beforeEach(async () => {
       [admin, creator, curator, bidder, other] = await ethers.getSigners();
-      auctionHouse = (await deploy()) as AuctionHouse;
+      auctionHouse = (await deploy()) as RestrictedAuctionHouse;
       await mint(media.connect(creator));
       await approveAuction(media.connect(creator), auctionHouse);
-      await createAuction(
+      await createRestrictedAuction(
+        accessControl.address,
         auctionHouse.connect(creator),
         await curator.getAddress()
       );
       await auctionHouse.connect(curator).setAuctionApproval(0, true);
       badBidder = await deployBidder(auctionHouse.address, media.address);
+      await accessControl.addBidder(await bidder.getAddress());
+      await accessControl.addBidder(badBidder.address);
     });
 
     it("should revert if the auction does not exist", async () => {
@@ -806,7 +1085,7 @@ describe("AuctionHouse", () => {
     });
 
     it("should revert if the auction has not completed", async () => {
-      await auctionHouse.createBid(0, ONE_ETH, {
+      await auctionHouse.connect(bidder).createBid(0, ONE_ETH, {
         value: ONE_ETH,
       });
 

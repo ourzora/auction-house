@@ -7,10 +7,11 @@ import {
 } from "@zoralabs/core/dist/typechain";
 import {
   BadBidder,
-  AuctionHouse,
+  RestrictedAuctionHouse,
   WETH,
   BadERC721,
   TestERC721,
+  TestAccessControl,
 } from "../typechain";
 import { sha256 } from "ethers/lib/utils";
 import Decimal from "../utils/Decimal";
@@ -23,6 +24,12 @@ export const THOUSANDTH_ETH = ethers.utils.parseUnits(
 export const TENTH_ETH = ethers.utils.parseUnits("0.1", "ether") as BigNumber;
 export const ONE_ETH = ethers.utils.parseUnits("1", "ether") as BigNumber;
 export const TWO_ETH = ethers.utils.parseUnits("2", "ether") as BigNumber;
+
+export const deployAccessControl = async () => {
+  return (await (
+    await ethers.getContractFactory("TestAccessControl")
+  ).deploy()) as TestAccessControl;
+};
 
 export const deployWETH = async () => {
   const [deployer] = await ethers.getSigners();
@@ -80,7 +87,7 @@ export const mint = async (media: Media) => {
 
 export const approveAuction = async (
   media: Media,
-  auctionHouse: AuctionHouse
+  auctionHouse: RestrictedAuctionHouse
 ) => {
   await media.approve(auctionHouse.address, 0);
 };

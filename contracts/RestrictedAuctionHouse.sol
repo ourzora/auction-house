@@ -12,6 +12,7 @@ import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import { IMarket, Decimal } from "@zoralabs/core/dist/contracts/interfaces/IMarket.sol";
 import { IMedia } from "@zoralabs/core/dist/contracts/interfaces/IMedia.sol";
 import { IAuctionHouse } from "./interfaces/IAuctionHouse.sol";
+import { IAccessControl } from "./interfaces/IAccessControl.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -27,7 +28,7 @@ interface IMediaExtended is IMedia {
 /**
  * @title An open auction house, enabling collectors and curators to run their own auctions
  */
-contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
+contract RestrictedAuctionHouse is IAuctionHouse, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
@@ -46,8 +47,12 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
     // A mapping of all of the auctions currently running.
     mapping(uint256 => IAuctionHouse.Auction) public auctions;
+    mapping(uint256 => IAccessControl) public accessControlContracts;
+
+    bytes32 public constant BIDDER = keccak256("BIDDER");
 
     bytes4 constant interfaceId = 0x80ac58cd; // 721 interface id
+    bytes4 constant accessControlInterfaceId = 0x7965db0b;
 
     Counters.Counter private _auctionIdTracker;
 
@@ -74,7 +79,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     }
 
     /**
-     * @notice Create an auction.
+     * @notice Create an unrestricted auction.
      * @dev Store the auction details in the auctions mapping and emit an AuctionCreated event.
      * If there is no curator, or if the curator is the auction creator, automatically approve the auction.
      */
@@ -87,9 +92,64 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         uint8 curatorFeePercentage,
         address auctionCurrency
     ) public override nonReentrant returns (uint256) {
+        return _createRestrictedAuction(
+            tokenId,
+            tokenContract,
+            duration,
+            reservePrice,
+            curator,
+            curatorFeePercentage,
+            auctionCurrency,
+            address(0)
+        );
+    }
+
+    /**
+     * @notice Create a restricted auction.
+     * @dev Store the auction details in the auctions mapping and emit an AuctionCreated event.
+     * If there is no curator, or if the curator is the auction creator, automatically approve the auction.
+     * If the access control contract is the zero address, it is unrestricted.
+     */
+    function createRestrictedAuction(
+        uint256 tokenId,
+        address tokenContract,
+        uint256 duration,
+        uint256 reservePrice,
+        address payable curator,
+        uint8 curatorFeePercentage,
+        address auctionCurrency,
+        address accessControlContract
+    ) public nonReentrant returns (uint256) {
+        return _createRestrictedAuction(
+            tokenId,
+            tokenContract,
+            duration,
+            reservePrice,
+            curator,
+            curatorFeePercentage,
+            auctionCurrency,
+            accessControlContract
+        );
+    }
+
+    function _createRestrictedAuction(
+        uint256 tokenId,
+        address tokenContract,
+        uint256 duration,
+        uint256 reservePrice,
+        address payable curator,
+        uint8 curatorFeePercentage,
+        address auctionCurrency,
+        address accessControlContract
+    ) internal returns (uint256) {
         require(
             IERC165(tokenContract).supportsInterface(interfaceId),
             "tokenContract does not support ERC721 interface"
+        );
+        require(
+            accessControlContract == address(0) ||
+            IERC165(accessControlContract).supportsInterface(accessControlInterfaceId),
+            "accessControlContract does not support AccessControl interface"
         );
         require(curatorFeePercentage < 100, "curatorFeePercentage must be less than 100");
         address tokenOwner = IERC721(tokenContract).ownerOf(tokenId);
@@ -110,6 +170,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
             curator: curator,
             auctionCurrency: auctionCurrency
         });
+        accessControlContracts[auctionId] = IAccessControl(accessControlContract);
 
         IERC721(tokenContract).transferFrom(tokenOwner, address(this), tokenId);
 
@@ -174,6 +235,11 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
                 auctions[auctionId].amount.mul(minBidIncrementPercentage).div(100)
             ),
             "Must send more than last bid by minBidIncrementPercentage amount"
+        );
+        require(
+            address(accessControlContracts[auctionId]) == address(0) ||
+            accessControlContracts[auctionId].hasRole(BIDDER, msg.sender),
+            "Must have BIDDER role"
         );
 
         // For Zora Protocol, ensure that the bid is valid for the current bidShare configuration
