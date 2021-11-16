@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "prepublishOnly": "yarn build:contracts && yarn build:package",
-    "install": "yarn build:contracts && yarn build:package",
+    "postinstall": "yarn build:contracts && yarn build:package",
     "build:contracts": "hardhat compile",
     "build:package": "rm -rf ./dist && tsc && cp typechain/*.d.ts dist/typechain && cp -R addresses dist && cp -R artifacts/contracts dist/artifacts && cp -R contracts dist",
     "test": "hardhat test",
