@@ -126,6 +126,7 @@ npx hardhat test
 ## Bug Bounty
 - 25 ETH for any critical bugs that could result in loss of funds.
 - Rewards will be given for smaller bugs or ideas.
+- Send your bug reports to security@zora.co for a member of our security team to further investigate.
 
 
 ## Acknowledgements
