@@ -1,7 +1,7 @@
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
-import "hardhat-typechain";
+import "@typechain/hardhat";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
 
