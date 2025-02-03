@@ -1,3 +1,10 @@
+### Deprecation Notice
+
+This is a legacy NFT protocol which ZORA does not use anymore but is still alive onchain due to the nature of decentralized applications.
+
+The media onchain is supported by multiple NFT platforms (including ZORA) for historical purposes, trading, and display but we strongly recommend using other approaches to mint and sell NFTs today (including our newer https://github.com/ourzora/zora-protocol protocol monorepo).
+
+
 # Zora — Auction House 〜 𓀨 〜
 
 ![Auction House Header Image](./auction-house.png)
@@ -122,12 +129,6 @@ npx hardhat compile
 ```shell script
 npx hardhat test
 ```
-
-## Bug Bounty
-- 25 ETH for any critical bugs that could result in loss of funds.
-- Rewards will be given for smaller bugs or ideas.
-- Send your bug reports to security@zora.co for a member of our security team to further investigate.
-
 
 ## Acknowledgements
 
